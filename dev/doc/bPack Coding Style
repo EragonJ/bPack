@@ -1,0 +1,16 @@
+命名：
+
+檔案、資料夾：以單數為主
+資料表：以複數為主
+afterDispatch()
+Admin_Model_User
+
+bPack_App_BaseDir
+bPack_BaseDir
+
+bPack_DEBUG_MODE
+
+final public static function xxxx ()
+{
+
+}

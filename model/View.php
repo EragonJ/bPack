@@ -5,6 +5,20 @@ class bPack_View
     var $_filename = '';
     var $_options = array();
     var $_outputHandler = null;
+    
+    public function __construct(bPack_View_Adaptee $handler = null)
+    {
+        if(!is_null($handler))
+        {
+            $this->setOutputHandler($handler);
+        }
+    }
+    
+    public function getEngine()
+    {
+        return $this->_outputHandler->getEngine();
+    }
+    
 
     public function assign($key, $value = '')
     {

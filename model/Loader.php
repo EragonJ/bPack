@@ -70,18 +70,23 @@ class bPack_Loader
         }
         else
         {
-            $request_classPath = str_replace('_','/',$request_className);
-            
-            if(!file_exists(bPack_App_BaseDir . 'model/'.$request_classPath.'.php'))
-            {
-                return false;
-            }
-            
-            include(bPack_App_BaseDir . 'model/'.$request_classPath.'.php');
-            
-            return true;
+            self::checkModel($request_className);
         }
         
         return false;
+    }
+    
+    public static function checkModel($request_className)
+    {
+        $request_classPath = str_replace('_','/',$request_className);
+            
+        if(!file_exists(bPack_App_BaseDir . 'model/'.$request_classPath.'.php'))
+        {
+            return false;
+        }
+            
+        include(bPack_App_BaseDir . 'model/'.$request_classPath.'.php');
+            
+        return true;
     }
 }

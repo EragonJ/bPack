@@ -54,7 +54,7 @@
         
         protected function cleanURI()
 	{
-		$this->_URI = str_replace(bPack_BASE_URI,'',$this->_URI);
+		$this->_URI = substr($this->_URI, strlen(bPack_BASE_URI),strlen($this->_URI)- strlen(bPack_BASE_URI));
 
 		return $this;
 	}

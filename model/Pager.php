@@ -2,7 +2,7 @@
 	class bPack_Pager
 	{
             protected $total = 0;
-            protected $current = 0;            
+            protected $current = 1;            
             protected $per = 3;
                         
             public function total($total = 0)
@@ -20,7 +20,7 @@
                 }
                 else
                 {
-                    $this->current = $current;
+                    $this->current = $current ;
                 }               
                 
                 return $this;
@@ -91,7 +91,7 @@
                 {
                     if($this->pager_object->getCurrent() >  1)
                     {
-                         $this->prev_result = $this->putLink('<img border="0" src="'.bPack_BaseDir.'tpl/Pager/prev.png" width="16" height="16">',$this->pager_object->getPrevious()) ;
+                         $this->prev_result = '<li>'.$this->putLink('上一頁',$this->pager_object->getPrevious()).'</li>' ;
                     }
                 }
                 
@@ -104,7 +104,7 @@
                 {
                     if($this->pager_object->getCurrent() >  1)
                     {
-                         $this->prev_result = $this->putLink('<img border="0" src="'.bPack_BaseDir.'tpl/Pager/first.png" width="16" height="16">',1) .  '&nbsp;' .$this->prev_result ;
+                         $this->prev_result = '<li>' . $this->putLink('第一頁',1) .  '</li>' .$this->prev_result ;
                     }
                 }
                 
@@ -117,7 +117,7 @@
                 {
                     if($this->pager_object->getCurrent() < $this->pager_object->getTotal())
                     {
-                         $this->next_result .= '&nbsp;' . $this->putLink('<img border="0" src="'.bPack_BaseDir.'tpl/Pager/last.png" width="16" height="16">',$this->pager_object->getTotal())  ;
+                         $this->next_result .= '<li>' . $this->putLink('最後一頁',$this->pager_object->getTotal()) .'</li>';
                     }
                 }
                 
@@ -130,7 +130,7 @@
                 {
                     if($this->pager_object->getCurrent() < $this->pager_object->getTotal())
                     {
-                        $this->next_result = $this->putLink('<img border="0" src="'.bPack_BaseDir.'tpl/Pager/next.png" width="16" height="16">',$this->pager_object->getNext());
+                        $this->next_result = '<li>'.$this->putLink('下一頁',$this->pager_object->getNext()).'</li>';
                     }
                 }
                 
@@ -155,17 +155,28 @@
                     for($i=1;$i<=$leftandright;$i++)
                     {
                         if(($prev = $this->pager_object->getPrevious($i)) !== FALSE) $leftLinks[$leftandright-$i] = $this->putLink($prev,$prev);
+
                         if(($next = $this->pager_object->getNext($i)) !== FALSE) $rightLinks[$i] = $this->putLink($next,$next);
+                    }
+
+                    if((count($rightLinks) - count($leftLinks) )> 0)
+                    {
+                     $minus = (count($rightLinks) - count($leftLinks) ) + 1; 
+                     $counter = sizeof($rightLinks);
+                        for($i=1;$i<=$minus;$i++)
+                        {
+                            if(($next = $this->pager_object->getNext($counter + $i)) !== FALSE) $rightLinks[$counter + $i] = $this->putLink($next,$next);
+                        }   
                     }
 
                     natsort($leftLinks);
                     natsort($rightLinks);
                     
-                    $this->html_result = implode('&nbsp;',$leftLinks) . '&nbsp;<b style="font-size:13px;">'.$this->pager_object->getCurrent().'</b>&nbsp;' . implode('&nbsp;',$rightLinks);
+                    $this->html_result = '<li>'.implode('</li><li>',$leftLinks) . '</li><li class="current">'.$this->pager_object->getCurrent().'</li><li>' . implode('</li><li>',$rightLinks).'</li>';
                 }
                 else
                 {
-                     $this->html_result = '<span style="font-family:Tahoma;font-size: 12px;color:#666666;">第 <b  style="font-size:12px;">1</b> 頁</span>';
+                     $this->html_result = '<li>1</li>';
                 }
                 
                 return $this;
@@ -173,7 +184,7 @@
             
             public function generateHTML()
             {
-                return '<!-- Pager START -->' . $this->prev_result . '&nbsp;'. $this->html_result . '&nbsp;'. $this->next_result .  '<!-- Pager END -->' ;
+                return '<!-- Pager START -->' . $this->prev_result . $this->html_result . $this->next_result .  '<!-- Pager END -->' ;
             }
         }
         

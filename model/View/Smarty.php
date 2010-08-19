@@ -40,13 +40,6 @@ class bPack_View_Smarty implements bPack_View_Adaptee
         return true;
     }
     
-    public function setOption($key,$value = '')
-    {
-        $this->_smarty->{$key} = $value;
-    
-        return true;
-    }
-    
     public function setParent(bPack_View $parent)
     {
         $this->_parent = $parent;

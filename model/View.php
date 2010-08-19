@@ -37,12 +37,19 @@ class bPack_View
         return $this;
     }
 
-    public function render($filename = '')
+    protected function checkOutputHandler()
     {
         if(!is_object($this->_outputHandler))
         {
             throw new bPack_Exception('bPack View: No output handler was specified.');
         }
+
+        return true;
+    }
+
+    public function render($filename = '')
+    {
+        $this->checkOutputHandler();
 
         foreach($this->_options as $key=>$value)
         {
@@ -105,7 +112,6 @@ interface bPack_View_Adaptee
 {
     public function assign($key,$value = '');
     public function output();
-    public function setOption($key, $value = '');
     public function setFilename($filename);
     public function setParent(bPack_View $parent);
     public function getEngine();

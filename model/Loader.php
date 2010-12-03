@@ -10,14 +10,14 @@ class bPack_Loader
         }
         
         // constants check
-        if(!defined('bPack_App_BaseDir'))
+        if(!defined('bPack_Application_Directory'))
         {
-            die("bPack Loader: Runtime constant bPack_App_BaseDir is not defined.");
+            die("bPack Loader: Runtime constant bPack_Application_Directory is not defined.");
         }
         
-        if(!defined('bPack_BaseDir'))
+        if(!defined('bPack_Directory'))
         {
-            die("bPack Loader: Runtime constant bPack_BaseDir is not defined.");
+            die("bPack Loader: Runtime constant bPack_Directory is not defined.");
         }
         
         // Register __autoload
@@ -27,12 +27,12 @@ class bPack_Loader
         bPack_ErrorHandler::setup();
         
         // check timezone
-        if(!defined('bPack_TIMEZONE'))
+        if(!defined('bPack_Application_Timezone'))
         {
-            define('bPack_TIMEZONE','UTC');
+            define('bPack_Application_Timezone','UTC');
         }
         
-        date_default_timezone_set(bPack_TIMEZONE);
+        date_default_timezone_set(bPack_Application_Timezone);
     }
     
     public static function autoload()

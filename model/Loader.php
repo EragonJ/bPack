@@ -12,12 +12,12 @@ class bPack_Loader
         // constants check
         if(!defined('bPack_App_BaseDir'))
         {
-            die("bPack Loader: Please give bPack_App_BaseDir");
+            die("bPack Loader: Runtime constant bPack_App_BaseDir is not defined.");
         }
         
         if(!defined('bPack_BaseDir'))
         {
-            die("bPack Loader: Please give bPack_BaseDir");
+            die("bPack Loader: Runtime constant bPack_BaseDir is not defined.");
         }
         
         // Register __autoload
@@ -49,21 +49,11 @@ class bPack_Loader
             
             if(!file_exists(bPack_BaseDir . 'model/'.$request_classPath.'.php'))
             {
-                /**
-                 * Check if the migration adaptor were created for moved class
-                 */
-                if(!file_exists(bPack_BaseDir . 'model/Migration_Adaptor/'.$request_className.'.php'))
-                {
-                    return false;
-                }
-                else
-                {
-                    include(bPack_BaseDir . 'model/Migration_Adaptor/'.$request_className.'.php');
-                }
+                return false;
             }
             else
             {
-                include(bPack_BaseDir . 'model/'.$request_classPath.'.php');
+                include bPack_BaseDir . 'model/'.$request_classPath.'.php';
             }
             
             return true;
@@ -85,7 +75,7 @@ class bPack_Loader
             return false;
         }
             
-        include(bPack_App_BaseDir . 'model/'.$request_classPath.'.php');
+        include bPack_App_BaseDir . 'model/'.$request_classPath.'.php';
             
         return true;
     }

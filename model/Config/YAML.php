@@ -1,5 +1,5 @@
 <?php
-require(bPack_BaseDir . 'lib/sfYaml/sfYaml.php');
+require(bPack_Directory . 'lib/sfYaml/sfYaml.php');
 
 class bPack_Config_YAML extends bPack_Config_Provider
 {

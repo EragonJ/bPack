@@ -1,5 +1,5 @@
 <?php
-require_once bPack_App_BaseDir . 'lib/Twig/Autoloader.php';
+require_once bPack_Application_Directory . 'lib/Twig/Autoloader.php';
 Twig_Autoloader::register();
  
 class bPack_View_Twig implements bPack_View_Adaptee
@@ -9,14 +9,19 @@ class bPack_View_Twig implements bPack_View_Adaptee
     protected $_filename;
     protected $values = array();
     
-    public function __construct()
+    public function __construct($load_path = '')
     {
-        $loader = new Twig_Loader_Filesystem(bPack_App_BaseDir . 'tpl');
+        if($load_path == '')
+        {
+            $load_path = bPack_Application_Directory . 'tpl';
+        }
+
+        $loader = new Twig_Loader_Filesystem($load_path);
         $this->twig = new Twig_Environment($loader, array(
-          'cache' => bPack_App_BaseDir . 'tmp/',
+          'cache' => bPack_Application_Directory . 'tmp/',
         ));
 
-        $this->assign('bPack_rootpath',bPack_BASE_URI);
+        $this->assign('bPack_rootpath',bPack_Application_BASE_URI);
     }
     
     public function assign($key,$value = '')

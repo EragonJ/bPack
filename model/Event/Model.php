@@ -2,53 +2,54 @@
 
 abstract class bPack_Event_Model
 {
-    protected $_helper = array();
+    protected $callable_function_list = array();
+    protected $plugin_list = array();
     
     abstract public function defaultAction();
     abstract public function startupAction();
     abstract public function tearDownAction();
-    
-    protected function _registerHelper(bPack_Event_Helper $obj)
+
+    public function addPlugin(bPack_Event_Plugin $object)
     {
-        $this->_helper[$obj->name] = $obj;
-        
+        $this->plugin_list[] = $object;
+
         return true;
     }
-    
-    /**
-     * 呼叫預設 Helper 方法時用
-     */
-    public function __call($name, $arguments)
+
+    /* Plugins */
+    public function registerPluginFunction($function_name, $callback)
     {
-        try
+        if(array_key_exists($function_name, $this->callable_function_list))
         {
-            call_user_func_array(array($this->_helper['default'],$name),$arguments);
+            throw new bPack_Exception('bPack_Event: plugin function `'.$name.'` had been register before.');
         }
-        catch (bPack_ErrorException $e)
+
+        $this->callable_function_list['_' . $function_name] = $callback;
+
+        return true;
+    }
+
+    public function unregisterPluginFunction($function_name)
+    {
+        if(array_key_exists($function_name, $this->callable_function_list))
+        {
+            unset($this->callable_function_list[$function_name]);
+        }
+        else
+        {
+            throw new Exception('bPack_Event: No corresponding function were exist.');
+        }
+    }
+
+    public function __call($name, $argument)
+    {
+        if(array_key_exists($name, $this->callable_function_list))
+        {
+            return call_user_func_array($this->callable_function_list[$name],$argument);
+        }
+        else
         {
             throw new bPack_Exception('bPack_Event_Model->call: no corresponding helper function were found.');
         }
-    }
-    
-    /**
-     * 呼叫未知參數時用
-     */
-    public function __get($name)
-    {
-        if(strpos($name,'Helper') !== FALSE)
-        {
-            $helper_name = str_replace('Helper','',$name);
-            
-            if(array_key_exists($helper_name,$this->_helper))
-            {
-                return $this->_helper[$helper_name];    
-            }
-            else
-            {
-                throw new bPack_Exception('bPack_Event_Model->get: no corresponding helper were found.');
-            }
-        }
-        
-        throw new bPack_Exception('bPack_Event_Model->call: no corresponding attribute were found.');
     }
 }

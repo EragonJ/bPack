@@ -58,6 +58,20 @@ class bPack_Loader
             
             return true;
         }
+        elseif(substr($request_className,0,7) == 'Plugin_')
+        {
+            $plugin_name = str_replace('Plugin_','',$request_className);
+
+            $filename = bPack_Application_Directory . 'lib/plugin/' . $plugin_name . '/src/' . $plugin_name.'.php';
+
+            if(file_exists($filename))
+            {
+                include $filename;
+            }
+            else
+            {
+            }
+        }
         else
         {
             self::checkModel($request_className);

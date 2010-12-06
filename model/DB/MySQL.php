@@ -5,9 +5,9 @@
 
         public function __construct($config)
         {
-            $this->database_link = mysql_connect($config->get(bPack_APP_ENV . '.host'), $config->get(bPack_APP_ENV . '.user'), $config->get(bPack_APP_ENV . '.password'));
+            $this->database_link = mysql_connect($config->get('host'), $config->get('username'), $config->get('password'));
             
-            mysql_select_db($config->get(bPack_APP_ENV . '.name'));
+            mysql_select_db($config->get('name'));
         }
         
         public function getEngine()
@@ -36,7 +36,7 @@
         
         public function set_names_utf8()
         {
-            $this->__engine->exec("SET NAMES 'utf8';");
+            $this->exec("SET NAMES 'utf8';");
 
             return true;
         }

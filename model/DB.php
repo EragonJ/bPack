@@ -5,14 +5,25 @@ class bPack_DB
     
     static public function getInstance()
     {
+        #
+        # if no instance created
+        # create a new one
+
         if(is_null(self::$_instance))
         {
-            $database_config = bPack_Config::getInstance()->setProvider(new bPack_Config_YAML(bPack_App_ConfigDir . 'database.yml'));
-            $adaptor_name = $database_config->get(bPack_APP_ENV . '.adapter');
+            $database_config = bPack_Config::getInstance()
+                ->setProvider(new bPack_Config_YAML(bPack_Application_Config_Directory . '/' . bPack_Application_Environment. '/database.yaml'));
+
+            $adaptor_name = $database_config->get('adaptor');
             
             $db_obj = new $adaptor_name($database_config);
         
             self::$_instance = $db_obj->getEngine();
+
+            if($action = $database_config->get('post_do'))
+            {
+                $db_obj->{$action}();
+            }
         }
         
         return self::$_instance;

@@ -5,7 +5,7 @@
 
         public function __construct($config)
         {
-            $this->__engine =  new PDO('mysql:host='.$config->get(bPack_Application_Environment . '.host').';dbname='.$config->get(bPack_Application_Environment . '.name'), $config->get(bPack_Application_Environment . '.username'), $config->get(bPack_Application_Environment . '.password'));
+            $this->__engine =  new PDO('mysql:host='.$config->get('host').';dbname='.$config->get('name'), $config->get('username'), $config->get('password'));
 
             $this->__engine->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         }

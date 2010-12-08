@@ -26,7 +26,7 @@ abstract class bPack_Event_Model
 
         $this->callable_function_list['_' . $function_name] = $callback;
 
-        return true;
+        return $this;
     }
 
     public function unregisterPluginFunction($function_name)

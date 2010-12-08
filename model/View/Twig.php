@@ -1,5 +1,5 @@
 <?php
-require_once bPack_BaseDir . 'lib/Twig/lib/Twig/Autoloader.php';
+require_once bPack_Directory . 'lib/Twig/lib/Twig/Autoloader.php';
 Twig_Autoloader::register();
  
 class bPack_View_Twig implements bPack_View_Adaptee

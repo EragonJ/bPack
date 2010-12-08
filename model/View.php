@@ -3,8 +3,8 @@ class bPack_View
 {
     var $_data = array();
     var $_filename = '';
-    var $_options = array();
-    var $_outputHandler = null;
+    public $_options = array();
+    public $_outputHandler = null;
     
     public function __construct(bPack_View_Adaptee $handler = null)
     {
@@ -13,7 +13,19 @@ class bPack_View
             $this->setOutputHandler($handler);
         }
     }
-    
+
+    public function getAdaptorName()
+    {
+        if(!is_null($this->_outputHandler))
+        {
+            return get_class($this->_outputHandler);
+        }
+        else
+        {
+            return null;
+        }
+    }
+
     public function getEngine()
     {
         return $this->_outputHandler->getEngine();

@@ -48,7 +48,7 @@ abstract class bPack_DB_Model
         $this->db = $db;
     }
 
-    public function read($statement = '')
+    public function read($statement = '', $return = self::RETURN_ALL)
     {
         if($statement == '')
         {
@@ -65,7 +65,7 @@ abstract class bPack_DB_Model
 
             case self::SQL_STATEMENT:
                 $sql = "SELECT ROWID as `id`, * FROM `".$this->table_name."` WHERE " . $statement . ";";
-                return $this->query($sql);
+                return $this->query($sql, $return);
             break;
         }
 

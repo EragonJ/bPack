@@ -1,17 +1,47 @@
 <?php
+/**
+ * Error handling classes
+ *
+ * @author bu <bu@hax4.in>
+ * @package bPack
+ * @subpackpage ErrorHandler
+ */
 class bPack_ErrorHandler
 {
+    /**
+     * Setup the bPack ErrorHandler functions
+     * 
+     * @param void
+     * @return void
+     */
     final public static function setup()
     {
         set_exception_handler(array( 'bPack_ErrorHandler', 'exception_handler'));
         set_error_handler(array('bPack_ErrorHandler', 'error_handler'), E_ALL);
     }
 
+    /**
+     * "Error" Handler function
+     *
+     * @param int $errno
+     * @param string $errstr
+     * @param string $errfile
+     * @param int $errline
+     * 
+     * @return void
+     * 
+     */
     final public static function error_handler($errno, $errstr, $errfile, $errline)
     {
             throw new bPack_ErrorException($errstr, 0, $errno, $errfile, $errline);
     }
 
+    /**
+     * "Exception" Handler Function 
+     *
+     * @param Expection $e
+     * @return void
+     */
     final public static function exception_handler($e)
     {
         self::_log($e->getMessage(),$e->getFile(),'EXCEPTION',$e->getTraceAsString());
@@ -19,11 +49,29 @@ class bPack_ErrorHandler
         exit;
     }
 
+    /**
+     * Logging method
+     * 
+     * @param string $msg
+     * @param string $file
+     * @param int $type
+     * @param string $detail
+     *
+     * @return bool the result of logging
+     */
     protected static function _log($msg,$file,$type ,$detail = '')
     {
         return true;
     }
 
+    /**
+     * Error Display method
+     * 
+     * @param string $msg
+     * @param string $file
+     * @param int $type
+     * @param string $detail
+     */
     protected static function _display($msg,$file,$type ,$detail = '')
     {
         if(!defined('bPack_CLI_MODE'))
@@ -38,9 +86,15 @@ class bPack_ErrorHandler
 }
 
 /**
- * Standard bPack Exceptions
+ * bPack Module used expection
+ * should only used in bPack Modules
  */
-
 class bPack_Exception extends Exception {}
+/**
+ * Generic exception for error
+ */
 class bPack_ErrorException extends ErrorException {}
+/**
+ * bPack NullArgument Exception
+ */
 class bPack_NullArgumentException extends bPack_Exception {}

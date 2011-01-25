@@ -6,6 +6,8 @@
  * @author bu <bu@hax4.in>
  * @package bPack
  * @subpackage DataContainer
+ * 
+ * @todo implements Iterator, Countable, ArrayAccess
  */
 
 class bPack_DataContainer

@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * A setting loader for bPack 
+ */
 class bPack_Config
 {
     protected static $_instance = null;

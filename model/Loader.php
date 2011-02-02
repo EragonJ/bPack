@@ -26,8 +26,8 @@ class bPack_Loader
         }
         
         #
-        # In case to prevent user include this file directly
-        # And user had not define the needed constant
+        # Prevent user include this file directly
+        # and had not define the needed constant
         # We should check this here, just in case.
         #
         if(!defined('bPack_Application_Directory'))

@@ -1,6 +1,15 @@
 <?php
+#
+# bPack_View
+# 
+# @package bPack
+# @subpackage View
+#
 class bPack_View
 {
+    #
+    # Assigned Key-value data
+    #
     var $_data = array();
     var $_filename = '';
     public $_options = array();
@@ -59,6 +68,9 @@ class bPack_View
         return true;
     }
 
+    #
+    # Using bPack View Adaptee with assigned data to make page
+    #
     public function render($filename = '')
     {
         $this->checkOutputHandler();
@@ -88,6 +100,9 @@ class bPack_View
         return $content;
     }
 
+    #
+    # Render and display the result
+    #
     public function output($filename = '')
     {
         echo $this->render($filename);

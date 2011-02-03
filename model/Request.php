@@ -59,5 +59,8 @@ class bPack_Request
         }
     }
 
-    
+    public function IsPostBack()
+    {
+        return ((isset($_POST)) && (sizeof($_POST) > 0));
+    }
 }

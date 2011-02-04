@@ -52,19 +52,19 @@ abstract class bPack_DB_Model
     {
         if($statement == '')
         {
-            $sql = "SELECT ROWID as `id`, * FROM `".$this->table_name."`;";
+            $sql = "SELECT * FROM `".$this->table_name."`;";
             return $this->query($sql);
         }
 
         switch($this->parseStatement($statement))
         {
             case self::IDENITY_NUMBER:
-                $sql = "SELECT ROWID as `id`, * FROM `".$this->table_name."` WHERE `id` = '$statement';";
+                $sql = "SELECT * FROM `".$this->table_name."` WHERE `id` = '$statement';";
                 return $this->query($sql, self::RETURN_ONE);
             break;
 
             case self::SQL_STATEMENT:
-                $sql = "SELECT ROWID as `id`, * FROM `".$this->table_name."` WHERE " . $statement . ";";
+                $sql = "SELECT * FROM `".$this->table_name."` WHERE " . $statement . ";";
                 return $this->query($sql, $return);
             break;
         }
@@ -77,7 +77,7 @@ abstract class bPack_DB_Model
         switch($this->parseStatement($statement))
         {
             case self::IDENITY_NUMBER:
-                $sql = "DELETE FROM `".$this->table_name."` WHERE ROWID = '$statement';";
+                $sql = "DELETE FROM `".$this->table_name."` WHERE `id` = '$statement';";
                 return $this->execute($sql);
             break;
 
@@ -142,7 +142,7 @@ abstract class bPack_DB_Model
         switch($this->parseStatement($statement))
         {
             case self::IDENITY_NUMBER:
-                $sql = "UPDATE `".$this->table_name."` SET $update_sql WHERE ROWID = '$statement';";
+                $sql = "UPDATE `".$this->table_name."` SET $update_sql WHERE `id` = '$statement';";
                 return $this->execute($sql);
             break;
 

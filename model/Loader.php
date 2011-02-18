@@ -6,8 +6,7 @@
 # @subpackage Loader
 #
 
-class bPack_Loader
-{
+class bPack_Loader {
     #
     # run - a sequence of action to initialize bPack
     # 
@@ -33,14 +32,6 @@ class bPack_Loader
         if(!defined('bPack_Application_Directory'))
         {
             die("bPack Loader: Runtime constant bPack_Application_Directory is not defined.");
-        }
-        
-        #
-        # For the same reason as above, we check the constant here
-        #
-        if(!defined('bPack_Directory'))
-        {
-            die("bPack Loader: Runtime constant bPack_Directory is not defined.");
         }
         
         #

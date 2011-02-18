@@ -35,12 +35,6 @@ print DEV_FILE_HANDLE "<?php
 # bPack MVC Environment [Developement]
 #
 
-# bPack Directory
-define('bPack_Directory', bPack_Application_Directory . 'lib/bPack/');
-
-# Config Directory
-define('bPack_Application_Config_Directory', bPack_Application_Directory . 'config/');
-
 # When constructing URL, how should bPack begins with?
 define('bPack_Application_BASE_URI','/');";
 close (DEV_FILE_HANDLE);
@@ -55,15 +49,12 @@ print DEFAULT_CONTROLLER_HANDLE '<?php
 # Controller - default_default
 # Shown a default welcoe page for developers.
 
-class Controller_default_default extends ApplicationController
-{
-    public function startupAction()
-    {
+class Controller_default_default extends ApplicationController {
+    public function startupAction() {
         # do nothing
     }
 
-    public function defaultAction()
-    {
+    public function defaultAction() {
         # default action
         echo "<p>Hi, Welcome aboard. bPack is set up.</p>";
         echo "<p>please check ".$this->_internal_link("default","default","anotherAction")." to try another action.";
@@ -72,13 +63,11 @@ class Controller_default_default extends ApplicationController
         # note: in controller if a function is begun with underscore, that means it is a plugin action (just a convestion)
     }
 
-    public function anotherAction()
-    {
+    public function anotherAction() {
         echo "<p>This is another action</p>";
     }
 
-    public function tearDownAction()
-    {
+    public function tearDownAction() {
         # do nothing
     }
 }';
@@ -102,30 +91,25 @@ open (APPLICTION_CONTROLLER_HANDLE, ">>model/ApplicationController.php");
 print APPLICTION_CONTROLLER_HANDLE '<?php
 # Default Application Controller Skelton
 
-class ApplicationController extends bPack_Event_Model
-{
-    public function __construct()
-    {
+class ApplicationController extends bPack_Event_Model {
+    public function __construct() {
         # default Application with only few plugin and modules
         $this->request = new bPack_Request;
 
         $this->addPlugin(new Plugin_URL($this));
     }
 
-    public function startupAction()
-    {
+    public function startupAction() {
         # define here to avoid each controller exists empty function
         # but if need for change, it enable possiblity to overwrite.
     }
 
-    public function defaultAction()
-    {
+    public function defaultAction() {
         # throw an expection to notify developer that controller missing a defaultAction(and that may cause issues)
         throw new Exception("ApplicationController: This controller does not have a own defaultAction.");
     }
 
-    public function tearDownAction()
-    {
+    public function tearDownAction() {
         # define here to avoid empty function in each controller
     }
 }';
@@ -166,7 +150,7 @@ bPack_Dispatcher::run($route);';
 close (INDEX_HANDLE);
 
 # END
-print "\n\nbPack MVC inited.\nBut there's few thing should do:";
-print "1. git clone bpack into lib/bPack";
-print "2. git clone bpack_plugin_url into lib/bPack/plugin/URL (this should be auto later)";
-print "3. fix URI prefix in config/dev/config.php, according to your need";
+print "\n\nbPack MVC inited.\nBut there's few thing should do: \n\n";
+print "1. git clone bpack into lib/bPack\n";
+print "2. git clone bpack_plugin_url into lib/bPack/plugin/URL (this should be auto later)\n";
+print "3. fix URI prefix in config/dev/config.php, according to your need\n";

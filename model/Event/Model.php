@@ -9,9 +9,18 @@ abstract class bPack_Event_Model
     abstract public function startupAction();
     abstract public function tearDownAction();
 
-    public function addPlugin(bPack_Event_Plugin $object)
+    public function plugin_add($plugin_name) 
     {
-        $this->plugin_list[] = $object;
+        $plugin_name = 'Plugin_' . $plugin_name;
+
+        $this->plugin_list[] = new $plugin_name($this);
+        
+        return true;
+    }
+
+    public function addPlugin(bPack_Event_Plugin $plugin)
+    {
+        $this->plugin_list[] = $plugin;
 
         return true;
     }

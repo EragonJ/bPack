@@ -6,8 +6,31 @@ define('bP_ENCODED',FILTER_SANITIZE_ENCODED);
 define('bP_EMAIL',FILTER_SANITIZE_EMAIL);
 define('bP_ARRAY',FILTER_REQUIRE_ARRAY);
 
+
+
 class bPack_Request
 {
+    public $clean_vars = array();
+        
+    public function __construct()
+    {
+        foreach($_GET as $k => $v)
+        {
+            $this->clean_vars['get'][$k] = $this->get($k, '');
+        }
+
+        foreach($_POST as $k => $v)
+        {
+            $this->clean_vars['post'][$k] = $this->post($k,'');
+        }
+
+        foreach($_REQUEST as $k=> $v)
+        {
+            $this->clean_vars['request'][$k] = $this->clean($v , bP_STRING);
+        }
+    }
+
+
     public static function get($var_name ,$default_value = false, $type = bP_STRING,$option = '')
     {
         return self::_input(INPUT_GET,$var_name ,$default_value, $type,$option);

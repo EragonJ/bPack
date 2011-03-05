@@ -131,7 +131,7 @@ print INDEX_HANDLE '<?php
 
 # define application location
 define("bPack_Application_Directory","' . cwd() . '/");
-define("bPack_Application_Environment", ((!getenv("bPack_ENV")) ? "developement" : getenv("bPack_ENV")) );
+define("bPack_Application_Environment", ((!getenv("bPack_ENV")) ? "dev" : getenv("bPack_ENV")) );
 
 # load config
 require bPack_Application_Directory . "config/constant.php";

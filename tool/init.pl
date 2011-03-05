@@ -2,8 +2,9 @@
 
 use strict;
 use Cwd;
+use File::Basename;
 
-print "\n\nbPack Init Script v0.1\n\n";
+print "\n\nbPack MVC Project Init Script v0.4\n\n";
 print "Are you sure create bPack MVC Project under this directory? (y/N)  ";
 
 my $confirm = <STDIN>;
@@ -20,11 +21,8 @@ mkdir("config/dev",0755);
 open (CONSTANT_FILE_HANDLE, '>>config/constant.php');
 print CONSTANT_FILE_HANDLE "<?php
 #
-# bPack MVC Constants
-#
-
-# This application running at which environment?
-define('bPack_Application_Environment', 'dev');";
+# bPack Constants
+#";
 
 close (CONSTANT_FILE_HANDLE);
 
@@ -75,6 +73,9 @@ close (DEFAULT_CONTROLLER_HANDLE);
 
 # lib
 mkdir("lib",0755);
+symlink( '../' . dirname(dirname(__FILE__) . '../'), "lib/bPack" );
+
+
 mkdir("lib/plugin",0755);
 
 # public
@@ -95,8 +96,8 @@ class ApplicationController extends bPack_Event_Model {
     public function __construct() {
         # default Application with only few plugin and modules
         $this->request = new bPack_Request;
+        $this->response = new bPack_Response;
 
-        $this->addPlugin(new Plugin_URL($this));
     }
 
     public function startupAction() {
@@ -130,13 +131,14 @@ print INDEX_HANDLE '<?php
 
 # define application location
 define("bPack_Application_Directory","' . cwd() . '/");
+define("bPack_Application_Environment", ((!getenv("bPack_ENV")) ? "developement" : getenv("bPack_ENV")) );
 
 # load config
 require bPack_Application_Directory . "config/constant.php";
 require bPack_Application_Directory . "config/" . bPack_Application_Environment . "/config.php";
 
 # load bPack Loader
-require bPack_Directory . "model/Loader.php";
+require bPack_Application_Directory . "lib/bPack/model/Loader.php";
 bPack_Loader::run();
 
 # parse route for dispatching
@@ -151,6 +153,5 @@ close (INDEX_HANDLE);
 
 # END
 print "\n\nbPack MVC inited.\nBut there's few thing should do: \n\n";
-print "1. git clone bpack into lib/bPack\n";
-print "2. git clone bpack_plugin_url into lib/bPack/plugin/URL (this should be auto later)\n";
-print "3. fix URI prefix in config/dev/config.php, according to your need\n";
+print "fix URI prefix in config/dev/config.php, according to your need\n";
+

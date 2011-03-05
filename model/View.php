@@ -106,7 +106,7 @@ class bPack_View
     public function output($filename = '')
     {
         echo $this->render($filename);
-        return true;
+        exit;
     }
 
     public function setOption($key, $value = '')

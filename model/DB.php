@@ -12,7 +12,7 @@ class bPack_DB
         if(is_null(self::$_instance))
         {
             $database_config = bPack_Config::getInstance()
-                ->setProvider(new bPack_Config_YAML(bPack_Application_Config_Directory . '/' . bPack_Application_Environment. '/database.yaml'));
+                ->setProvider(new bPack_Config_YAML(bPack_Application_Directory . 'config/' . bPack_Application_Environment. '/database.yaml'));
 
             $adaptor_name = $database_config->get('adaptor');
             

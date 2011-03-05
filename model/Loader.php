@@ -85,13 +85,13 @@ class bPack_Loader {
             $request_className = str_replace('bPack_','',$request_className);
             $request_classPath = str_replace('_','/',$request_className);
             
-            if(!file_exists(bPack_Directory . 'model/'.$request_classPath.'.php'))
+            if(!file_exists(bPack_Application_Directory . 'lib/bPack/' . 'model/'.$request_classPath.'.php'))
             {
                 return false;
             }
             else
             {
-                include bPack_Directory . 'model/'.$request_classPath.'.php';
+                include bPack_Application_Directory . 'lib/bPack/' . 'model/'.$request_classPath.'.php';
             }
             
             return true;

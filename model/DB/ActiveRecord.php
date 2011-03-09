@@ -10,10 +10,75 @@ abstract class bPack_DB_ActiveRecord
 
     public function getSchema()
     {
-        var_dump($this->table_columns);
+        $database_backend  = 'MYSQL';
+        if($database_backend == 'sqlite')
+        {
+            $schema_sql = '';
+
+            $schema_sql .= "CREATE TABLE `{$this->table_name}` ";
+
+            $field_schema = array();
+            foreach($this->table_column as $col => $col_info)
+            {
+                if(isset($col_info['tag']) && (strpos( $col_info['tag'],'primary_key') !== FALSE))
+                {
+                    $col_type = 'INTEGER PRIMARY KEY';
+                }
+                else
+                {
+                    $col_type = '';
+                }
+
+                $field_schema[] = " $col $col_type";
+            }
+
+            $schema_sql .= "(".implode(',', $field_schema).");";
+        }
+        else
+        {
+            #mysql
+
+            $schema_sql = "CREATE TABLE  IF NOT EXISTS `{$this->table_name}` ";
+            $index_sql = '';
+
+            $field_schema = array();
+            foreach($this->table_column as $col => $col_info)
+            {
+                if(isset($col_info['tag']) && (strpos( $col_info['tag'],'primary_key') !== FALSE))
+                {
+                    $col_type = 'int(20) unsigned not null AUTO_INCREMENT';
+                    $index_sql .= ',PRIMARY KEY (`'.$col.'`)';
+                }
+                else
+                {
+                    if(strpos(strtolower($col_info['type']),'int') === FALSE)
+                    {
+                        $col_type = $col_info['type'];
+                    }
+                    else
+                    {
+                        $col_type = $col_info['type'] . ' unsigned';
+                    }
+                }
+
+                $field_schema[] = " `$col` $col_type NOT NULL";
+            }
+
+            $schema_sql .= "(".implode(',', $field_schema).' ' .$index_sql.")  ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+        }
         
         return $schema_sql;
     } 
+
+    public function destroySchema()
+    {
+        return $this->connection->exec('DROP TABLE `'.$this->table_name.'`;');
+    }
+
+    public function createSchema()
+    {
+        return $this->connection->exec($this->getSchema());
+    }
 
     public function __construct()
     {
@@ -148,19 +213,9 @@ abstract class bPack_DB_ActiveRecord
     }
 }
 
-class bPack_DB_ActiveModel_Entry implements ArrayAccess
+class bPack_DB_ActiveModel_Collection implements ArrayAccess, Countable, Iterator
 {
-    protected $entry_original_data = array();
-    protected $entry_new_data = array();
-
-    protected $columns = array();
-    protected $tags = array();
-
-    protected $connection = null;
-    protected $table_name = '';
-
-    protected $column_tags;
-    protected $tag_columns;
+    protected $dataset = array();
 
     public function offsetExists($offset)
     {
@@ -183,17 +238,107 @@ class bPack_DB_ActiveModel_Entry implements ArrayAccess
         return true;
     }
 
+    public function current ()
+    {
+
+    }
+
+    public function key ()
+    {
+
+    }
+
+    public function next ()
+    {
+
+    }
+
+    public function rewind ()
+    {
+
+    }
+
+    public function valid ()
+    {
+
+    }
+
+    public function count()
+    {
+
+    }
+
+}
+
+class bPack_DB_ActiveModel_Entry implements ArrayAccess
+{
+    protected $entry_original_data = array();
+    protected $entry_new_data = array();
+
+    protected $columns = array();
+    protected $tags = array();
+
+    protected $connection = null;
+    protected $table_name = '';
+
+    protected $column_tags;
+    protected $tag_columns;
+    protected $table_column;
+
+    public function offsetExists($offset)
+    {
+        try
+        {
+            $this->__get($offset);
+
+            return true;
+        }
+        catch(Exception $e)
+        {
+            return false;
+        }
+    }
+
+    public function offsetGet($offset)
+    {
+        return $this->__get($offset);
+    }
+
+    public function offsetSet($offset, $value)
+    {
+        return $this->__set($offset, $value);
+    }
+
+    public function offsetUnset($offset)
+    {
+        return true;
+    }
+
     public function __construct($connection, $table_name, $columns, $data = null)
     {
         $this->connection = $connection;
 
         $this->table_name = $table_name;
+        $this->table_column = $columns;
 
         $this->processTableColumn($columns);
 
         if(!is_null($data))
         {
-            $this->entry_original_data = $data;
+            foreach($data as $k => $v)
+            {
+                if(strpos($v,'__JSON__') === FALSE)
+                {
+                    $this->entry_original_data[$k] = $v;
+                }
+                else
+                {
+                    $v = str_replace('__JSON__','',$v);
+                    $new_v = json_decode($v, true);
+
+                    $this->entry_original_data[$k] = $new_v;
+                }
+            }
         }
     }
 
@@ -255,6 +400,19 @@ class bPack_DB_ActiveModel_Entry implements ArrayAccess
 
         return implode(',', $sql_statements);
     }
+    
+    protected function extractColumnPreparedName($data)
+    {
+        $sql_statements = array();
+
+        foreach($data as $k=>$v)
+        {
+            $sql_statements[] = "`{$k}`=:{$k}";
+        }
+
+        return implode(',', $sql_statements);
+    }
+
 
     public function save()
     {
@@ -262,6 +420,11 @@ class bPack_DB_ActiveModel_Entry implements ArrayAccess
 
         foreach($this->entry_new_data as $name=>$value)
         {
+            if(is_array($value))
+            {
+                $value = "__JSON__" . json_encode($value);
+            }
+
             if(! $this->checkIfSame($value, $name))
             {
                 $data_be_updated[$name] = $value;
@@ -277,28 +440,59 @@ class bPack_DB_ActiveModel_Entry implements ArrayAccess
         {
             $this->processUpdateEveryTime($data_be_updated);
 
-            $sql = "UPDATE `{$this->table_name}` SET ".$this->extractColValueHash($data_be_updated)." where `id` = {$this->entry_original_data['id']};";
+            $prepare_sql = "UPDATE `{$this->table_name}` SET " . $this->extractColumnPreparedName($data_be_updated) . " WHERE `id` = {$this->entry_original_data['id']};";
+
+            $prepared_stmt = $this->connection->prepare($prepare_sql);
+
+            $data_prepared =array();
+            foreach($data_be_updated as $k=> $v)
+            {
+                $data_prepared[':'.$k] = $v;
+            }
+
+
+            //$sql = "UPDATE `{$this->table_name}` SET ".$this->extractColValueHash($data_be_updated)." where `id` = {$this->entry_original_data['id']};";
 
             # return update, true or false
-            return $this->connection->exec($sql);
+            return $prepared_stmt->execute($data_prepared);
         }
         else
         {
-
             // check if required data were not given
             $this->processTagRequired($data_be_updated);
 
             $this->processAutofill($data_be_updated);
 
-            $sql = "INSERT INTO `{$this->table_name}` (".$this->extractColumnName($data_be_updated).") VALUES (".$this->extractColumnValue($data_be_updated).");";
+            $prepare_sql = "INSERT INTO `{$this->table_name}` (".$this->extractColumnName($data_be_updated).") VALUES (".$this->extractPreparedColumnName($data_be_updated).")";
+
+            $prepared_stmt = $this->connection->prepare($prepare_sql);
+            
+            $data_prepared =array();
+            foreach($data_be_updated as $k=> $v)
+            {
+                $data_prepared[':'.$k] = $v;
+            }
+
+            #$sql = "INSERT INTO `{$this->table_name}` (".$this->extractColumnName($data_be_updated).") VALUES (".$this->extractColumnValue($data_be_updated).");";
 
             // return rowid
-            $this->connection->exec($sql);
+            $prepared_stmt->execute($data_prepared);
 
             return $this->connection->lastInsertId();
         }
 
         return false;
+    }
+
+    protected function extractPreparedColumnName($data)
+    {
+        $data_sql  = array();
+        foreach($data as $k=>$v)
+        {
+            $data_sql[] = ":{$k}";
+        }
+
+        return implode(',', $data_sql);
     }
 
     protected function processUpdateEveryTime(&$data)
@@ -307,7 +501,7 @@ class bPack_DB_ActiveModel_Entry implements ArrayAccess
         {
             if(in_array('current_timestamp',$this->column_tags[$col]))
             {
-                $data[$col] = time();
+                $data[$col] = date('Y-m-d H:i:s' ,time());
             }
         }
     }
@@ -347,7 +541,7 @@ class bPack_DB_ActiveModel_Entry implements ArrayAccess
         {
             if(in_array('current_timestamp', $this->column_tags[$column]))
             {
-                $data_be_updated[$column] = time();
+                $data_be_updated[$column] = date('Y-m-d H:i:s', time());
             }
 
             if(in_array('primary_key', $this->column_tags[$column]))
@@ -379,7 +573,7 @@ class bPack_DB_ActiveModel_Entry implements ArrayAccess
         $values_sql = array();
         foreach($columns as $col)
         {
-            if($hash[$col] == NULL)
+            if($hash[$col] === NULL)
             {
                 $values_sql[] = "NULL";
             }
@@ -411,11 +605,22 @@ class bPack_DB_ActiveModel_Entry implements ArrayAccess
     {
         if(in_array($attribute_name, $this->columns))
         {
-            # todo: consider this stripslashes 
-            return stripslashes($this->entry_original_data[$attribute_name]);
+            if(!is_array($this->entry_original_data[$attribute_name]))
+            {
+                return stripslashes($this->entry_original_data[$attribute_name]);
+            }
+
+            return $this->entry_original_data[$attribute_name];
+        }
+        else
+        {
+            if(in_array($attribute_name, array_keys($this->entry_new_data)))
+            {
+                return $this->entry_new_data[$attribute_name];
+            }
         }
 
-        throw new ActiveRecord_ColumnNotExistException();
+        throw new ActiveRecord_ColumnNotExistException("requested field '$attribute_name' doest not exist in schema");
     }
 }
 

@@ -5,12 +5,15 @@ abstract class bPack_DB_ActiveRecord
     const FetchAll = 1;
     const FetchOne = 2;
 
+    protected $collection_instances = array();
+
     protected $columns = array();
     protected $table_column = array();
 
     public function getSchema()
     {
-        $database_backend  = 'MYSQL';
+        $database_backend  = $this->connection->getAttribute(PDO::ATTR_DRIVER_NAME);
+
         if($database_backend == 'sqlite')
         {
             $schema_sql = '';
@@ -102,7 +105,7 @@ abstract class bPack_DB_ActiveRecord
         return $this->generateEntryObject($data);
     }
 
-    protected function generateEntryObject($data = null)
+    public function generateEntryObject($data = null)
     {
         if($data === FALSE)
         {
@@ -111,11 +114,11 @@ abstract class bPack_DB_ActiveRecord
 
         if(is_null($data))
         {
-            return new bPack_DB_ActiveModel_Entry($this->connection, $this->table_name, $this->table_column);
+            return new bPack_DB_ActiveRecord_Entry($this->connection, $this->table_name, $this->table_column);
         }
         else
         {
-            return new bPack_DB_ActiveModel_Entry($this->connection, $this->table_name, $this->table_column, $data);
+            return new bPack_DB_ActiveRecord_Entry($this->connection, $this->table_name, $this->table_column, $data);
         }
     }
 
@@ -129,7 +132,7 @@ abstract class bPack_DB_ActiveRecord
         return $this->find_all_by_id();
     }
 
-    protected function retrieve_entry_by($column, $value, $retrieve_count)
+    protected function retrieve_multiple_entries_by($column, $value)
     {
         if(!in_array($column, $this->columns))
         {
@@ -138,26 +141,41 @@ abstract class bPack_DB_ActiveRecord
 
         $value_sql = $this->generateValue($column, $value);
 
-        $sql = "SELECT * FROM `{$this->table_name}` WHERE {$value_sql};";
+        $sql = "SELECT * FROM `{$this->table_name}` WHERE {$value_sql}";
 
-        if ($retrieve_count == self::FetchOne)
+        $offset = md5($sql);
+
+        if(isset($this->collection_instances[$offset]))
         {
-            $data = $this->connection->query($sql)->fetch(PDO::FETCH_ASSOC); 
-            $result_set = $this->generateEntryObject($data);
+            $return_obj = $this->collection_instances[$offset];
         }
         else
         {
-            $dataset = $this->connection->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+            $this->collection_instances[$offset] = new bPack_DB_ActiveRecord_Collection($this->connection, $this->table_name, $this->table_column, $sql);
 
-            $result_set = array();
-
-            foreach($dataset as $data)
-            {
-                $result_set[] = $this->generateEntryObject($data);
-            }
+            $return_obj = $this->collection_instances[$offset];
         }
 
-        return $result_set;
+        return $return_obj;
+
+    }
+
+    protected function retrieve_entry_by($column, $value)
+    {
+        if(!in_array($column, $this->columns))
+        {
+            throw new ActiveRecord_ColumnNotExistException("Requested column [ $column ] was't in the defination.");
+        }
+
+        $value_sql = $this->generateValue($column, $value);
+
+        
+
+        $sql = "SELECT * FROM `{$this->table_name}` WHERE {$value_sql};";
+
+        $data = $this->connection->query($sql)->fetch(PDO::FETCH_ASSOC); 
+
+        return $this->generateEntryObject($data);
     }
 
     protected function generateValue($column, $value)
@@ -199,428 +217,27 @@ abstract class bPack_DB_ActiveRecord
         {
             $column_name = str_replace('find_by_', '', $function_name);
 
-            return $this->retrieve_entry_by($column_name, $attributes, $fetch_type = self::FetchOne);
+            return $this->retrieve_entry_by($column_name, $attributes);
         }
         
         if(strpos($function_name,'find_all_by_') !== FALSE)
         {
             $column_name = str_replace('find_all_by_', '', $function_name);
 
-            return $this->retrieve_entry_by($column_name, $attributes, $fetch_type = self::FetchAll);
+            if(strpos($column_name,'_with_'))
+            {
+                $column = substr($column_name, 0, strpos($column_name, '_'));
+                $column_condtion = substr($column_name, strpos($column_name, '_with_') + 6, strlen($column_name) - strlen($column));
+                
+                $entry_data = $this->retrieve_entry_by($column_condtion, $attributes);
+
+                return $this->retrieve_multiple_entries_by($column, $entry_data->id);
+            }
+
+            return $this->retrieve_multiple_entries_by($column_name, $attributes);
         }
 
         throw new bPack_Exception("ActiveRecord: No corresponding method exists. (requested: $function_name)");
-    }
-}
-
-class bPack_DB_ActiveModel_Collection implements ArrayAccess, Countable, Iterator
-{
-    protected $dataset = array();
-
-    public function offsetExists($offset)
-    {
-        return isset($this->entry_original_data[$offset]);
-    }
-
-    public function offsetGet($offset)
-    {
-        # todo: consider this stripslashes
-        return (isset($this->entry_original_data[$offset])) ? stripslashes($this->entry_original_data[$offset]) : null;
-    }
-
-    public function offsetSet($offset, $value)
-    {
-        return true;
-    }
-
-    public function offsetUnset($offset)
-    {
-        return true;
-    }
-
-    public function current ()
-    {
-
-    }
-
-    public function key ()
-    {
-
-    }
-
-    public function next ()
-    {
-
-    }
-
-    public function rewind ()
-    {
-
-    }
-
-    public function valid ()
-    {
-
-    }
-
-    public function count()
-    {
-
-    }
-
-}
-
-class bPack_DB_ActiveModel_Entry implements ArrayAccess
-{
-    protected $entry_original_data = array();
-    protected $entry_new_data = array();
-
-    protected $columns = array();
-    protected $tags = array();
-
-    protected $connection = null;
-    protected $table_name = '';
-
-    protected $column_tags;
-    protected $tag_columns;
-    protected $table_column;
-
-    public function offsetExists($offset)
-    {
-        try
-        {
-            $this->__get($offset);
-
-            return true;
-        }
-        catch(Exception $e)
-        {
-            return false;
-        }
-    }
-
-    public function offsetGet($offset)
-    {
-        return $this->__get($offset);
-    }
-
-    public function offsetSet($offset, $value)
-    {
-        return $this->__set($offset, $value);
-    }
-
-    public function offsetUnset($offset)
-    {
-        return true;
-    }
-
-    public function __construct($connection, $table_name, $columns, $data = null)
-    {
-        $this->connection = $connection;
-
-        $this->table_name = $table_name;
-        $this->table_column = $columns;
-
-        $this->processTableColumn($columns);
-
-        if(!is_null($data))
-        {
-            foreach($data as $k => $v)
-            {
-                if(strpos($v,'__JSON__') === FALSE)
-                {
-                    $this->entry_original_data[$k] = $v;
-                }
-                else
-                {
-                    $v = str_replace('__JSON__','',$v);
-                    $new_v = json_decode($v, true);
-
-                    $this->entry_original_data[$k] = $new_v;
-                }
-            }
-        }
-    }
-
-    protected function processTableColumn($columns)
-    {
-        $this->columns = array_keys($columns);
-
-        $this->processTags($columns);
-        
-        return true;
-    }
-
-    protected function processTags($columns)
-    {
-        foreach($columns as $col=>$col_setting)
-        {
-            if(!isset($col_setting['tag']))
-            {
-                continue;
-            }
-
-            $tag = $col_setting['tag'];
-
-            if(strpos($tag, ' '))
-            {
-                $tags = explode(' ', $tag);
-            }
-            else
-            {
-                $tags = array($tag);
-            }
-
-            foreach($tags as $tagging)
-            {
-                $this->tag_columns[$tagging][] = $col;
-                $this->column_tags[$col][] = $tagging;
-            }
-        }
-    }
-
-    protected function checkIfSame($value, $name)
-    {
-        if(!isset($this->entry_original_data[$name]))
-        {
-            return false;
-        }
-
-        return ($this->entry_original_data[$name] == $value);
-    }
-
-    protected function extractColValueHash($data)
-    {
-        $sql_statements = array();
-
-        foreach($data as $k=>$v)
-        {
-            $sql_statements[] = "`$k`='$v'";
-        }
-
-        return implode(',', $sql_statements);
-    }
-    
-    protected function extractColumnPreparedName($data)
-    {
-        $sql_statements = array();
-
-        foreach($data as $k=>$v)
-        {
-            $sql_statements[] = "`{$k}`=:{$k}";
-        }
-
-        return implode(',', $sql_statements);
-    }
-
-
-    public function save()
-    {
-        $data_be_updated = array();
-
-        foreach($this->entry_new_data as $name=>$value)
-        {
-            if(is_array($value))
-            {
-                $value = "__JSON__" . json_encode($value);
-            }
-
-            if(! $this->checkIfSame($value, $name))
-            {
-                $data_be_updated[$name] = $value;
-            }
-        }
-
-        if(sizeof($data_be_updated) == 0)
-        {
-            throw new ActiveRecord_NoInputException('there is no data to update');
-        }
-
-        if(isset($this->entry_original_data['id']) && $this->entry_original_data['id'] !== '')
-        {
-            $this->processUpdateEveryTime($data_be_updated);
-
-            $prepare_sql = "UPDATE `{$this->table_name}` SET " . $this->extractColumnPreparedName($data_be_updated) . " WHERE `id` = {$this->entry_original_data['id']};";
-
-            $prepared_stmt = $this->connection->prepare($prepare_sql);
-
-            $data_prepared =array();
-            foreach($data_be_updated as $k=> $v)
-            {
-                $data_prepared[':'.$k] = $v;
-            }
-
-
-            //$sql = "UPDATE `{$this->table_name}` SET ".$this->extractColValueHash($data_be_updated)." where `id` = {$this->entry_original_data['id']};";
-
-            # return update, true or false
-            return $prepared_stmt->execute($data_prepared);
-        }
-        else
-        {
-            // check if required data were not given
-            $this->processTagRequired($data_be_updated);
-
-            $this->processAutofill($data_be_updated);
-
-            $prepare_sql = "INSERT INTO `{$this->table_name}` (".$this->extractColumnName($data_be_updated).") VALUES (".$this->extractPreparedColumnName($data_be_updated).")";
-
-            $prepared_stmt = $this->connection->prepare($prepare_sql);
-            
-            $data_prepared =array();
-            foreach($data_be_updated as $k=> $v)
-            {
-                $data_prepared[':'.$k] = $v;
-            }
-
-            #$sql = "INSERT INTO `{$this->table_name}` (".$this->extractColumnName($data_be_updated).") VALUES (".$this->extractColumnValue($data_be_updated).");";
-
-            // return rowid
-            $prepared_stmt->execute($data_prepared);
-
-            return $this->connection->lastInsertId();
-        }
-
-        return false;
-    }
-
-    protected function extractPreparedColumnName($data)
-    {
-        $data_sql  = array();
-        foreach($data as $k=>$v)
-        {
-            $data_sql[] = ":{$k}";
-        }
-
-        return implode(',', $data_sql);
-    }
-
-    protected function processUpdateEveryTime(&$data)
-    {
-        foreach($this->tag_columns['update_every_time'] as $col)
-        {
-            if(in_array('current_timestamp',$this->column_tags[$col]))
-            {
-                $data[$col] = date('Y-m-d H:i:s' ,time());
-            }
-        }
-    }
-
-    protected function processTagRequired(&$data)
-    {
-        foreach($this->tag_columns['required'] as $col)
-        {
-            if ( isset($data[$col]) )
-            {
-                if ((trim($data[$col]) == ''))
-                {
-                    if(in_array('allow_empty', $this->column_tags[$col]))
-                    {
-                        continue;
-                    }
-
-                    if(in_array('has_default_value', $this->column_tags[$col]))
-                    {
-                        $data[$col] = $this->table_column[$col]['default'];
-                        continue;
-                    }
-                }
-                else
-                {
-                    continue;
-                }
-            }
-
-            throw new ActiveRecord_EmptyRequiredFieldException("$col is required, and should not be empty");
-        }
-    }
-
-    protected function processAutofill(&$data_be_updated)
-    {
-        foreach($this->tag_columns['autofill_on_create'] as $column)
-        {
-            if(in_array('current_timestamp', $this->column_tags[$column]))
-            {
-                $data_be_updated[$column] = date('Y-m-d H:i:s', time());
-            }
-
-            if(in_array('primary_key', $this->column_tags[$column]))
-            {
-                $data_be_updated[$column] = null;
-            }
-        }
-
-        return true;
-    }
-
-    protected function extractColumnName($hash)
-    {
-        $columns = array_keys($hash);
-
-        $columns_sql = array();
-        foreach($columns as $col)
-        {
-            $columns_sql[] = "`$col`";
-        }
-
-        return implode(',' , $columns_sql);
-    }
-
-    protected function extractColumnValue($hash)
-    {
-        $columns = array_keys($hash);
-
-        $values_sql = array();
-        foreach($columns as $col)
-        {
-            if($hash[$col] === NULL)
-            {
-                $values_sql[] = "NULL";
-            }
-            else
-            {
-                $values_sql[] = $this->connection->quote($hash[$col]);
-            }
-        }
-        
-        return implode(',', $values_sql);
-    }
-
-    public function destory()
-    {
-        // return true of false
-        $sql = "DELETE FROM `{$this->table_name}` WHERE `id` = '{$this->entry_original_data['id']}';";
-
-        return $this->connection->exec($sql);
-    }
-
-    public function __set($attribute_name, $value)
-    {
-        $this->entry_new_data[$attribute_name] = $value;
-
-        return true;
-    }
-
-    public function __get($attribute_name)
-    {
-        if(in_array($attribute_name, $this->columns))
-        {
-            if(!is_array($this->entry_original_data[$attribute_name]))
-            {
-                return stripslashes($this->entry_original_data[$attribute_name]);
-            }
-
-            return $this->entry_original_data[$attribute_name];
-        }
-        else
-        {
-            if(in_array($attribute_name, array_keys($this->entry_new_data)))
-            {
-                return $this->entry_new_data[$attribute_name];
-            }
-        }
-
-        throw new ActiveRecord_ColumnNotExistException("requested field '$attribute_name' doest not exist in schema");
     }
 }
 

@@ -17,7 +17,7 @@
 
         public function query($sql)
         {
-            return new bPack_DB_MySQLi_PDO_Statement($this->database_link, $sql);
+            return new bPack_DB_MySQL_PDO_Statement($this->database_link, $sql);
         }
 
         public function exec($sql)
@@ -43,7 +43,7 @@
  
     }
 
-    class bPack_DB_MySQLi_PDO_Statement
+    class bPack_DB_MySQL_PDO_Statement
     {
         public function __construct($link, $sql)
         {

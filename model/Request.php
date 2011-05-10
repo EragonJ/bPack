@@ -21,12 +21,26 @@ class bPack_Request
 
         foreach($_POST as $k => $v)
         {
-            $this->clean_vars['post'][$k] = $this->post($k,'');
+            if(is_array($v))
+            {
+                $this->clean_vars['post'][$k] = $v;
+            }
+            else
+            {
+                $this->clean_vars['post'][$k] = $this->post($k,'');
+            }
         }
 
         foreach($_REQUEST as $k=> $v)
         {
-            $this->clean_vars['request'][$k] = $this->clean($v , bP_STRING);
+            if(is_array($v))
+            {
+                $this->clean_vars['request'][$k] = $v;
+            }
+            else
+            {
+                $this->clean_vars['request'][$k] = $this->clean($v , bP_STRING);
+            }
         }
     }
 

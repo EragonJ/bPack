@@ -25,7 +25,6 @@ class bPack_Config_YAML extends bPack_Config_Provider
         }
         
         $this->__filename = $filename;
-        
         $this->reload();
         
         return $this;

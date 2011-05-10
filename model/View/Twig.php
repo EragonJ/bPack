@@ -17,9 +17,15 @@ class bPack_View_Twig implements bPack_View_Adaptee
         }
 
         $loader = new Twig_Loader_Filesystem($load_path);
-        $this->twig = new Twig_Environment($loader, array(
-          'cache' => bPack_Application_Directory . 'tmp/',
-        ));
+        
+        if(defined('bPack_Debug') && bPack_Debug)
+        {
+            $this->twig = new Twig_Environment($loader);
+        }
+        else
+        {
+            $this->twig = new Twig_Environment($loader, array('cache' => bPack_Application_Directory . 'tmp/' ));
+        }
 
         $this->assign('bPack_rootpath',bPack_Application_BASE_URI);
     }

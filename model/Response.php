@@ -38,8 +38,9 @@ class bPack_Response
         {
             return $this->generateRewriteAddress($route);
         }
-
-        $address = 'index.php?module=';
+        
+        $address = bPack_Application_BASE_URI;
+        $address .= 'index.php?module=';
         $address .= $route->module;
         $address .= '&controller=';
         $address .= $route->controller;
@@ -86,6 +87,13 @@ class bPack_Response
 
         return $address;
 
+    }
+
+    public function msgbox($msg, $address)
+    {
+        echo '<script type="text/javascript">alert("'.$msg.'");</script>';
+        echo "<script type=\"text/javascript\">window.location.href='$address';</script>";
+        exit;
     }
 
     public function redirect($address, $http_status_code = 302)

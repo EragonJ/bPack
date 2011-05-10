@@ -87,7 +87,7 @@ class bPack_Loader {
             
             if(!file_exists(bPack_Application_Directory . 'lib/bPack/' . 'model/'.$request_classPath.'.php'))
             {
-                return false;
+                throw new bPack_Exception('Requeseted class '.$request_className.' not found.');
             }
             else
             {
@@ -111,8 +111,10 @@ class bPack_Loader {
             }
             else
             {
-                return false;
+                throw new bPack_Exception('Requeseted class '.$request_className.' not found.');
             }
+
+            return true;
         }
         #
         # If the classname has no prefix that defined here, we call checkModel() to help us find the class file
@@ -121,7 +123,7 @@ class bPack_Loader {
         {
             return self::checkModel($request_className);
         }
-        
+
         return false;
     }
     
@@ -141,7 +143,5 @@ class bPack_Loader {
         }
             
         include bPack_Application_Directory . 'model/'.$request_classPath.'.php';
-            
-        return true;
     }
 }

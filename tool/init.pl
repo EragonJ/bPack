@@ -4,14 +4,14 @@ use strict;
 use Cwd;
 use File::Basename;
 
-print "\n\nbPack MVC Project Init Script v0.4\n\n";
+print "bPack MVC Project Init Script v0.4\n\n";
 print "Are you sure create bPack MVC Project under this directory? (y/N)  ";
 
 my $confirm = <STDIN>;
-
 chomp $confirm;
-
 exit unless ($confirm eq "y" || $confirm eq "Y");
+
+# start creation
 
 # config
 mkdir("config",0755);
@@ -34,6 +34,7 @@ print DEV_FILE_HANDLE "<?php
 #
 
 # When constructing URL, how should bPack begins with?
+define('bPack_Debug', 1);
 define('bPack_Application_BASE_URI','/');";
 close (DEV_FILE_HANDLE);
 
@@ -47,25 +48,30 @@ print DEFAULT_CONTROLLER_HANDLE '<?php
 # Controller - default_default
 # Shown a default welcoe page for developers.
 
-class Controller_default_default extends ApplicationController {
-    public function startupAction() {
+class Controller_default_default extends ApplicationController 
+{
+    public function startupAction() 
+    {
         # do nothing
     }
 
-    public function defaultAction() {
+    public function defaultAction() 
+    {
         # default action
         echo "<p>Hi, Welcome aboard. bPack is set up.</p>";
-        echo "<p>please check ".$this->_internal_link("default","default","anotherAction")." to try another action.";
+        echo "<p>please check ".$this->response->get_internal_link("default.default/anotherAction")." to try another action.";
         echo "<p>If you found the link different from your current position, please fix the BASE_URL locate in config/".bPack_Application_Environment."/config.php</p>";
 
         # note: in controller if a function is begun with underscore, that means it is a plugin action (just a convestion)
     }
 
-    public function anotherAction() {
+    public function anotherAction() 
+    {
         echo "<p>This is another action</p>";
     }
 
-    public function tearDownAction() {
+    public function tearDownAction() 
+    {
         # do nothing
     }
 }';
@@ -92,25 +98,28 @@ open (APPLICTION_CONTROLLER_HANDLE, ">>model/ApplicationController.php");
 print APPLICTION_CONTROLLER_HANDLE '<?php
 # Default Application Controller Skelton
 
-class ApplicationController extends bPack_Event_Model {
-    public function __construct() {
-        # default Application with only few plugin and modules
+class ApplicationController extends bPack_Event_Model 
+{
+    public function __construct() 
+    {
         $this->request = new bPack_Request;
         $this->response = new bPack_Response;
-
     }
 
-    public function startupAction() {
+    public function startupAction() 
+    {
         # define here to avoid each controller exists empty function
         # but if need for change, it enable possiblity to overwrite.
     }
 
-    public function defaultAction() {
+    public function defaultAction() 
+    {
         # throw an expection to notify developer that controller missing a defaultAction(and that may cause issues)
         throw new Exception("ApplicationController: This controller does not have a own defaultAction.");
     }
 
-    public function tearDownAction() {
+    public function tearDownAction() 
+    {
         # define here to avoid empty function in each controller
     }
 }';

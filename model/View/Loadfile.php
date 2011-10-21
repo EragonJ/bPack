@@ -16,7 +16,9 @@ class bPack_View_Loadfile implements bPack_View_Adaptee
             throw new bPack_Exception('bPack_View_Loadfile: No template file are specified to display.');
         }
         
-        return file_get_contents(bPack_App_BaseDir . 'tpl/'.$this->_filename);
+        // TODO: replace {{ xx }} with assigned data
+
+        return file_get_contents(bPack_Application_Directory . 'tpl/'.$this->_filename);
     }
 
     public function setFilename($filename)

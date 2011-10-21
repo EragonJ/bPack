@@ -1,7 +1,4 @@
 <?php
-require_once bPack_Application_Directory . 'lib/Twig/lib/Twig/Autoloader.php';
-Twig_Autoloader::register();
- 
 class bPack_View_Twig implements bPack_View_Adaptee
 {
     protected $_parent;
@@ -9,8 +6,19 @@ class bPack_View_Twig implements bPack_View_Adaptee
     protected $_filename;
     protected $values = array();
     
-    public function __construct($load_path = '')
+    public function __construct($load_path = '', $twig_installed_by_pear = false)
     {
+		if($twig_installed_by_pear)
+		{
+			require_once 'Twig/Autoloader.php';
+		}
+		else
+		{
+			require_once bPack_Application_Directory . 'lib/Twig/lib/Twig/Autoloader.php';
+		}
+
+		Twig_Autoloader::register();
+
         if($load_path == '')
         {
             $load_path = bPack_Application_Directory . 'tpl';

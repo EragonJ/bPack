@@ -11,6 +11,8 @@ define('bP_ARRAY',FILTER_REQUIRE_ARRAY);
 class bPack_Request
 {
     public $clean_vars = array();
+	public $postdata = array();
+	public $getdata = array();
         
     public function __construct()
     {
@@ -42,6 +44,9 @@ class bPack_Request
                 $this->clean_vars['request'][$k] = $this->clean($v , bP_STRING);
             }
         }
+
+		$this->postdata = &$this->clean_vars['post'];
+		$this->getdata = &$this->clean_vars['get'];
     }
 
 

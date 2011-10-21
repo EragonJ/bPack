@@ -112,6 +112,7 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
                 $this->column_tags[$col][] = $tagging;
             }
         }
+
     }
 
     protected function checkIfSame($value, $name)
@@ -148,6 +149,28 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
         return implode(',', $sql_statements);
     }
 
+	protected function generatePrimaryKey()
+	{
+		if(isset($this->tag_columns['primary_key']))
+		{
+			if(sizeof($this->tag_columns['primary_key']) > 1)
+			{
+				throw new Exception('too many primary key');
+			}
+
+			$primary_key_name = $this->tag_columns['primary_key'][0];
+
+			return $primary_key_name;
+		}
+	}
+
+	protected function generatePrimaryKeyQuery()
+	{
+		$primary_key_name = $this->generatePrimaryKey();
+
+		return "`{$primary_key_name}` = '{$this->entry_original_data[$primary_key_name]}'";
+	}
+
 
     public function save()
     {
@@ -170,12 +193,14 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
         {
             throw new ActiveRecord_NoInputException('there is no data to update');
         }
+		
+		$primary_key_column = $this->generatePrimaryKey();
 
-        if(isset($this->entry_original_data['id']) && $this->entry_original_data['id'] !== '')
+        if(isset($this->entry_original_data[$primary_key_column]) && $this->entry_original_data[$primary_key_column] !== '')
         {
             $this->processUpdateEveryTime($data_be_updated);
 
-            $prepare_sql = "UPDATE `{$this->table_name}` SET " . $this->extractColumnPreparedName($data_be_updated) . " WHERE `id` = {$this->entry_original_data['id']};";
+            $prepare_sql = "UPDATE `{$this->table_name}` SET " . $this->extractColumnPreparedName($data_be_updated) . " WHERE ".$this->generatePrimaryKeyQuery().";";
 
             $prepared_stmt = $this->connection->prepare($prepare_sql);
 
@@ -185,7 +210,7 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
                 $data_prepared[':'.$k] = $v;
             }
             
-            //$sql = "UPDATE `{$this->table_name}` SET ".$this->extractColValueHash($data_be_updated)." where `id` = {$this->entry_original_data['id']};";
+            //$sql = "UPDATE `{$this->table_name}` SET ".$this->extractColValueHash($data_be_updated)." where " . $this->generatePrimaryKeyQuery() . ";";
 
             # return update, true or false
             return $prepared_stmt->execute($data_prepared);
@@ -231,13 +256,20 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
 
     protected function processUpdateEveryTime(&$data)
     {
-        foreach($this->tag_columns['update_every_time'] as $col)
-        {
-            if(in_array('current_timestamp',$this->column_tags[$col]))
-            {
-                $data[$col] = date('Y-m-d H:i:s' ,time());
-            }
-        }
+		if(array_key_exists('update_every_time', $this->tag_columns))
+		{
+			foreach($this->tag_columns['update_every_time'] as $col)
+			{
+				if(in_array('current_timestamp',$this->column_tags[$col]))
+				{
+					$data[$col] = date('Y-m-d H:i:s' ,time());
+				}
+			}
+		}
+		else
+		{
+			return true;
+		}
     }
 
     protected function processTagRequired(&$data)
@@ -271,6 +303,11 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
 
     protected function processAutofill(&$data_be_updated)
     {
+		if(!array_key_exists('autofill_on_create', $this->tag_columns))
+		{
+			return true;
+		}
+
         foreach($this->tag_columns['autofill_on_create'] as $column)
         {
             if(in_array('current_timestamp', $this->column_tags[$column]) && !isset($data_be_updated[$column]))
@@ -323,7 +360,7 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
     public function destroy()
     {
         // return true of false
-        $sql = "DELETE FROM `{$this->table_name}` WHERE `id` = '{$this->entry_original_data['id']}';";
+        $sql = "DELETE FROM `{$this->table_name}` WHERE ".$this->generatePrimaryKeyQuery(). ";";
 
         return $this->connection->exec($sql);
     }
@@ -352,6 +389,14 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
             {
                 return $this->entry_new_data[$attribute_name];
             }
+
+			if(!is_array($this->entry_original_data[$attribute_name]))
+            {
+                return stripslashes($this->entry_original_data[$attribute_name]);
+            }
+
+            return $this->entry_original_data[$attribute_name];
+
         }
 
         throw new ActiveRecord_ColumnNotExistException("requested field '$attribute_name' doest not exist in schema");

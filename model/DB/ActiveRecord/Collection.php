@@ -12,9 +12,11 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
 
     protected $limit = null;
     protected $orderby = array();
+	protected $group_by = '';
     protected $offset = 0;
 
     protected $condition = '';
+    protected $selection = array();
 
     protected $generated_data = null;
     protected $required_regenerate = true;
@@ -39,6 +41,70 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
             }
         }
     }
+
+	protected function generateSelection()
+	{
+		$columns = array();
+		
+		foreach($this->selection as $column=>$alias)
+		{
+			if($column == $alias)
+			{
+				$columns[] = "$column";
+			}
+			else
+			{
+				$columns[] = "$column as `$alias`";
+			}
+		}
+
+		return implode(",", $columns);
+	}
+
+ 	public function removeAllSelect()
+	{
+		$this->selection = array($this->generatePrimaryKey());
+
+		return $this;
+	}
+
+	public function removeSelect($select)
+	{
+		unset($this->selection[$select]);
+
+		return $this;
+	}
+
+	public function addSelect($select, $alias = '')
+	{
+		if($select instanceof AR_modifier)
+		{
+			if($alias == '')
+			{
+				$alias = $select->returnData();
+			}
+
+			$this->selection[$select->returnData()] = $alias;
+		}
+		else
+		{
+			if($alias == '')
+			{
+				$alias = $select;
+			}
+
+			if(!in_array($select, $this->columns))
+			{
+				throw new Exception('no column');
+			}
+
+			$this->selection["`$select`"] = $alias;
+		}
+		
+		return $this;
+	}
+
+
 
     public function getLastSQL()
     {
@@ -68,7 +134,14 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
             
             foreach($this->orderby as $col => $dir)
             {
-                $sql[] = "`$col` $dir";
+				if(strpos($col, '`') !== FALSE)
+				{
+					$sql[] = "$col $dir";
+				}
+				else
+				{
+                	$sql[] = "`$col` $dir";
+				}
             }
 
             return ' ORDER BY ' . implode(',',$sql);
@@ -152,9 +225,20 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
         }
     }
 
+	protected function generateGroupBySQL()
+	{
+		if($this->group_by)
+		{
+			return " GROUP BY `{$this->group_by}`";
+		}
+
+		return '';
+	}
+
     protected function generateData()
     {
-        $this->sql = $this->condition . $this->generateOrderBySQL() . $this->generateLimitSQL() . ';';
+        $this->sql = "SELECT " . $this->generateSelection() . "FROM `{$this->table_name}` ". $this->condition . $this->generateGroupBySQL() . $this->generateOrderBySQL() . $this->generateLimitSQL() . ';';
+
         $dataset = $this->connection->query($this->sql )->fetchAll(PDO::FETCH_ASSOC);
 
         $result_set = array();
@@ -206,8 +290,6 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
         return $data;
     }
 
-
-
     public function offsetSet($offset, $value)
     {
         return false;
@@ -218,11 +300,12 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
         return false;
     }
 
-    public function __construct($connection, $table_name, $columns, $condition)
+    public function __construct($connection, $table_name, $columns, $selection, $condition)
     {
         $this->connection = $connection;
         $this->table_name = $table_name;
         $this->condition = $condition;
+        $this->selection = $selection;
         $this->columns = array_keys($columns);
         $this->table_column = $columns;
     }
@@ -245,9 +328,50 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
 
     public function orderBy($column, $direction = 'ASC')
     {
+		if($column instanceof AR_modifier)
+		{
+			$column = $column->returnData();
+		}
+
         $this->orderby[$column] = $direction;
         $this->required_regenerate = true;
 
         return $this;
     }
+
+	public function group_by($column)
+	{
+		if($this->group_by == '')
+		{
+			$this->group_by = $column;
+			return $this;
+		}
+
+		throw new Exception('two groupby');
+	}
+}
+
+interface AR_modifier
+{
+	public function returnData();
+	public function __toString();
+}
+
+class AR_Plain  implements AR_modifier
+{
+	public function __construct($col)
+	{
+		$this->col = $col;
+	}
+
+	public function __toString()
+	{
+		return $this->returnData();
+	}
+
+	public function returnData()
+	{
+		return $this->col;
+	}
+	
 }

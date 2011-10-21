@@ -99,7 +99,7 @@ abstract class bPack_DB_ActiveRecord
 
     public function last()
     {
-        $sql = "SELECT * FROM `{$this->table_name}` ORDER BY `id` DESC LIMIT 1;";
+        $sql = "SELECT * FROM `{$this->table_name}` ORDER BY ".$this->tag_columns['primary_key'][0] ." DESC LIMIT 1;";
         $data = $this->connection->query($sql)->fetch(PDO::FETCH_ASSOC);
 
         return $this->generateEntryObject($data);
@@ -132,6 +132,18 @@ abstract class bPack_DB_ActiveRecord
         return $this->find_all_by_id();
     }
 
+	protected function generateColumnListing()
+	{
+		$columns = array();
+		
+		foreach($this->columns as $column)
+		{
+			$columns[] = "`$column`";
+		}
+
+		return implode(",", $columns);
+	}
+
     protected function retrieve_multiple_entries_by($column, $value)
     {
         if(!in_array($column, $this->columns))
@@ -141,24 +153,26 @@ abstract class bPack_DB_ActiveRecord
 
         $value_sql = $this->generateValue($column, $value);
 
-        $sql = "SELECT * FROM `{$this->table_name}` WHERE {$value_sql}";
+		if($value_sql != "")
+		{
+			$value_sql = " WHERE $value_sql";
+		}
 
-        $offset = md5($sql);
-
-        if(isset($this->collection_instances[$offset]))
-        {
-            $return_obj = $this->collection_instances[$offset];
-        }
-        else
-        {
-            $this->collection_instances[$offset] = new bPack_DB_ActiveRecord_Collection($this->connection, $this->table_name, $this->table_column, $sql);
-
-            $return_obj = $this->collection_instances[$offset];
-        }
-
-        return $return_obj;
-
+		return new bPack_DB_ActiveRecord_Collection($this->connection, $this->table_name, $this->table_column, $this->generateSelection(), $value_sql);
     }
+
+	protected function generateSelection()
+	{
+		$raw_columns = $this->columns;
+		$columns = array();
+
+		foreach($raw_columns as $col)
+		{
+			$columns["`$col`"] = $col;
+		}
+
+		return $columns;
+	}
 
     protected function retrieve_entry_by($column, $value)
     {
@@ -169,9 +183,12 @@ abstract class bPack_DB_ActiveRecord
 
         $value_sql = $this->generateValue($column, $value);
 
-        
+		if($value_sql != '')
+		{
+			$value_sql = " WHERE $value_sql";
+		}
 
-        $sql = "SELECT * FROM `{$this->table_name}` WHERE {$value_sql};";
+        $sql = "SELECT ".$this->generateColumnListing()." FROM `{$this->table_name}` {$value_sql};";
 
         $data = $this->connection->query($sql)->fetch(PDO::FETCH_ASSOC); 
 
@@ -182,7 +199,7 @@ abstract class bPack_DB_ActiveRecord
     {
         if(sizeof($value) == 0)
         {
-            return '1=1';
+            return '';
         }
         elseif(sizeof($value) == 1)
         {
@@ -211,11 +228,30 @@ abstract class bPack_DB_ActiveRecord
         return $object->getSQL();
     }
 
+	public function extractPrimaryKey()
+	{
+		foreach($this->table_column as $col_name => $data)
+		{
+			if(strpos('primary_key', $data['tag']) !== FALSE)
+			{
+				return $col_name;
+			}
+		}
+
+		throw new Exception("No primaykey found.");
+	}
+
     public function __call($function_name, $attributes)
     {
         if(strpos($function_name, 'find_by_') !== FALSE)
         {
             $column_name = str_replace('find_by_', '', $function_name);
+			
+			/* when call id, we think it called primary key */
+			if($column_name == 'id')
+			{
+				$column_name = $this->extractPrimaryKey();
+			}
 
             return $this->retrieve_entry_by($column_name, $attributes);
         }
@@ -223,6 +259,12 @@ abstract class bPack_DB_ActiveRecord
         if(strpos($function_name,'find_all_by_') !== FALSE)
         {
             $column_name = str_replace('find_all_by_', '', $function_name);
+
+			/* when call id, we think it called primary key */
+			if($column_name == 'id')
+			{
+				$column_name = $this->extractPrimaryKey();
+			}
 
             if(strpos($column_name,'_with_'))
             {
@@ -264,6 +306,62 @@ class ActiveRecord_Condition_Plain implements ActiveRecord_ConditionOperator
         $this->col = $name;
     }
 }
+
+class ActiveRecord_Condition_Like implements ActiveRecord_ConditionOperator
+{
+    public function __construct($value)
+    {
+        $this->string = $value;
+    }
+
+    public function getSQL()
+    {
+        return "'{$this->col}' LIKE '{$this->string}'";
+    }
+
+    public function setColumn($name)
+    {
+        $this->col = $name;
+    }
+}
+
+class ActiveRecord_Condition_StatementAnd implements ActiveRecord_ConditionOperator
+{
+    public function __construct()
+    {
+        if(func_num_args() > 1)
+        {
+        $this->statement = func_get_args();
+        }
+        else
+        {
+            if(is_array(func_get_arg(0)))
+            {
+                $this->statement = func_get_arg(0);
+            }
+        }
+    }
+
+    public function setColumn($col)
+    {
+        $this->col = $col;
+    }
+
+    public function getSQL()
+    {
+        $statements = array();
+
+        foreach($this->statement as $v)
+        {
+			$v->setColumn($this->col);
+            $statements[] = $v->getSQL();
+        }
+
+        return implode(' AND ', $statements);
+    }
+}
+
+
 
 class ActiveRecord_Condition_MultipleAnd implements ActiveRecord_ConditionOperator
 {
@@ -357,6 +455,82 @@ class ActiveRecord_Condition_NotAnd implements ActiveRecord_ConditionOperator
         return implode(' AND ', $statements);
     }
 }
+
+class ActiveRecord_Condition_Between implements ActiveRecord_ConditionOperator
+{
+    public function __construct($a, $b)
+    {
+		$this->a = $this->givenValue($a);
+		$this->b = $this->givenValue($b);
+    }
+
+	protected function givenValue($data)
+	{
+		if(!is_numeric($data))
+		{
+			return "'$data'";
+		}
+
+		return $data;
+	}
+
+	public function setColumn($col)
+	{
+		$this->col = $col;
+	}
+
+    public function getSQL()
+    {
+		return "`{$this->col}` BETWEEN {$this->a} AND {$this->b}";
+    }
+
+	public function __toString()
+	{
+		return $this->getSQL();
+	}
+}
+
+class ActiveRecord_Condition_In implements ActiveRecord_ConditionOperator
+{
+	protected $col = '';
+    public function __construct($obj, $col = '')
+    {
+		$this-> obj = $obj;
+
+		$this->setColumn($col);
+    }
+
+	public function setColumn($col)
+	{
+		if($this->col == '')
+		{
+			$this->col = $col;
+		}
+	}
+
+	protected function generateIn()
+	{
+		$data =array();
+		foreach($this->obj as $obj)
+		{
+			$data[] = "'". $obj->rowid . "'";
+		}
+
+		return implode(",", $data);
+	}
+
+    public function getSQL()
+    {
+		return "`{$this->col}` IN ({$this->generateIn()})";
+    }
+
+	public function __toString()
+	{
+		return $this->getSQL();
+	}
+}
+
+
 
 class ActiveRecord_Exception extends bPack_Exception {}
 class ActiveRecord_EmptyRequiredFieldException extends ActiveRecord_Exception {}

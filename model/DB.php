@@ -1,8 +1,12 @@
 <?php
+/*
+	bPack_DB - a database wrapper for bPack
+*/
+
 class bPack_DB
 {
     protected static $_instance = null;
-    
+
     static public function getInstance()
     {
         #

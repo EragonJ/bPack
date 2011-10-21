@@ -10,6 +10,7 @@ abstract class bPack_Event_Plugin
 
         // setup plugin dependency
         $this->pluginInitialization();
+
         // register plugin functions to the Controller
         $this->registerFunctions();
     }

@@ -5,17 +5,40 @@ class bPack_View_Twig implements bPack_View_Adaptee
     protected $twig;
     protected $_filename;
     protected $values = array();
-    
-    public function __construct($load_path = '', $twig_installed_by_pear = false)
-    {
-		if($twig_installed_by_pear)
+
+	protected function loadTwig($pear = true)
+	{
+		$twig_location = bPack_Application_Directory . 'lib/Twig/lib/Twig/Autoloader.php';
+
+		if(!$pear)
 		{
-			require_once 'Twig/Autoloader.php';
+			if(file_exists($twig_location))
+			{
+				require_once $twig_location;
+			}
+			else
+			{
+				throw new Exception('no twig');
+			}
 		}
 		else
 		{
-			require_once bPack_Application_Directory . 'lib/Twig/lib/Twig/Autoloader.php';
+			try
+			{
+				include_once 'Twig/Autoloader.php';
+			}
+			catch(Exception $e)
+			{
+				return $this->loadTwig(false);
+			}
 		}
+
+		return true;
+	}
+    
+    public function __construct($load_path = '')
+    {
+		$this->loadTwig();
 
 		Twig_Autoloader::register();
 

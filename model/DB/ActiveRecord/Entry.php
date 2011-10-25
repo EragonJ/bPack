@@ -376,13 +376,19 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
     {
         if(in_array($attribute_name, $this->columns))
         {
-            if(!is_array($this->entry_original_data[$attribute_name]))
-            {
-                return stripslashes($this->entry_original_data[$attribute_name]);
-            }
+			if(isset($this->entry_original_data[$attribute_name]))
+			{
+				if(!is_array($this->entry_original_data[$attribute_name]))
+				{
+					return stripslashes($this->entry_original_data[$attribute_name]);
+				}
 
-            return $this->entry_original_data[$attribute_name];
-        }
+				return $this->entry_original_data[$attribute_name];
+
+			}
+
+			return null;
+		}
         else
         {
             if(in_array($attribute_name, array_keys($this->entry_new_data)))
@@ -390,13 +396,23 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
                 return $this->entry_new_data[$attribute_name];
             }
 
-			if(!is_array($this->entry_original_data[$attribute_name]))
+			if(isset($this->entry_original_data[$attribute_name]) && !is_array($this->entry_original_data[$attribute_name]))
             {
                 return stripslashes($this->entry_original_data[$attribute_name]);
             }
+			
+			/* we assume that id means primary key */
+			if($attribute_name == 'id')
+			{
+				return stripslashes($this->entry_original_data[$this->generatePrimaryKey()]);
+			}
+			
+			if(isset($this->entry_original_data[$attribute_name]))
+			{
+				return $this->entry_original_data[$attribute_name];
+			}
 
-            return $this->entry_original_data[$attribute_name];
-
+			return null;
         }
 
         throw new ActiveRecord_ColumnNotExistException("requested field '$attribute_name' doest not exist in schema");

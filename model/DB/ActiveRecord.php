@@ -511,6 +511,7 @@ class ActiveRecord_Condition_In implements ActiveRecord_ConditionOperator
 	protected function generateIn()
 	{
 		$data =array();
+
 		foreach($this->obj as $obj)
 		{
 			$data[] = "'". $obj->rowid . "'";

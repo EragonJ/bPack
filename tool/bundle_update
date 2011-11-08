@@ -1,0 +1,14 @@
+#!/usr/bin/php
+
+<?php
+
+exec("rm lib/plugin/*");
+
+$plugins = file("config/bundle");
+
+foreach($plugins as $plugin_name)
+{
+	$plugin_name = trim($plugin_name);
+
+	exec("ln -s /home/bu/Playground/bPack/plugins/$plugin_name lib/plugin/$plugin_name");
+}

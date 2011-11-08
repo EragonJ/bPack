@@ -33,8 +33,13 @@ print DEV_FILE_HANDLE "<?php
 # bPack MVC Environment [Developement]
 #
 
-# When constructing URL, how should bPack begins with?
+# debugging?
 define('bPack_Debug', 1);
+
+# should we enable rewrite? (remove comment mark to enable that)
+#define('bPack_Application_RewriteEnabled', true);
+
+# When constructing URL, how should bPack begins with?
 define('bPack_Application_BASE_URI','/');";
 close (DEV_FILE_HANDLE);
 
@@ -79,7 +84,7 @@ close (DEFAULT_CONTROLLER_HANDLE);
 
 # lib
 mkdir("lib",0755);
-symlink( '../' . dirname(dirname(__FILE__) . '../'), "lib/bPack" );
+symlink( '/home/bu/Playground/bPack', "lib/bPack" );
 
 
 mkdir("lib/plugin",0755);
@@ -151,10 +156,18 @@ require bPack_Application_Directory . "lib/bPack/model/Loader.php";
 bPack_Loader::run();
 
 # parse route for dispatching
-$route = new bPack_DataContainer;
-$route->module = bPack_Request::get("module", "default");
-$route->controller = bPack_Request::get("controller", "default");
-$route->action = bPack_Request::get("action" , "defaultAction");
+$router = new bPack_Router;
+
+if(defined(\'bPack_Application_RewriteEnabled\'))
+{
+	$router->setRouterModule(new bPack_Router_Rewrite);
+}
+else
+{
+	$router->setRouterModule(new bPack_Router_Parameter);
+}
+
+$route = $router->getRoute();
 
 # dispatch page to the right position
 bPack_Dispatcher::run($route);';

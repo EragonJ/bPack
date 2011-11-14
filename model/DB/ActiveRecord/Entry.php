@@ -191,7 +191,7 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
 
         if(sizeof($data_be_updated) == 0)
         {
-            throw new ActiveRecord_NoInputException('there is no data to update');
+			throw new ActiveRecord_NullUpdate;
         }
 		
 		$primary_key_column = $this->generatePrimaryKey();
@@ -274,31 +274,34 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
 
     protected function processTagRequired(&$data)
     {
-        foreach($this->tag_columns['required'] as $col)
-        {
-            if ( isset($data[$col]) )
-            {
-                if ((trim($data[$col]) == ''))
-                {
-                    if(in_array('allow_empty', $this->column_tags[$col]))
-                    {
-                        continue;
-                    }
+		if(isset($this->tag_columns['required']))
+		{
+			foreach($this->tag_columns['required'] as $col)
+			{
+				if ( isset($data[$col]) )
+				{
+					if ((trim($data[$col]) == ''))
+					{
+						if(in_array('allow_empty', $this->column_tags[$col]))
+						{
+							continue;
+						}
 
-                    if(in_array('has_default_value', $this->column_tags[$col]))
-                    {
-                        $data[$col] = $this->table_column[$col]['default'];
-                        continue;
-                    }
-                }
-                else
-                {
-                    continue;
-                }
-            }
+						if(in_array('has_default_value', $this->column_tags[$col]))
+						{
+							$data[$col] = $this->table_column[$col]['default'];
+							continue;
+						}
+					}
+					else
+					{
+						continue;
+					}
+				}
 
-            throw new ActiveRecord_EmptyRequiredFieldException("$col is required, and should not be empty");
-        }
+				throw new ActiveRecord_EmptyRequiredFieldException("$col is required, and should not be empty");
+			}
+		}
     }
 
     protected function processAutofill(&$data_be_updated)
@@ -418,3 +421,5 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
         throw new ActiveRecord_ColumnNotExistException("requested field '$attribute_name' doest not exist in schema");
     }
 }
+
+class ActiveRecord_NullUpdate extends ActiveRecord_Exception {}

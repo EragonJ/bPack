@@ -1,0 +1,18 @@
+{% extends "scaffold/layout.html" %}
+
+{% block title %}Modify %lowercase_model%{% endblock %}
+
+{% block content %}
+<form action="{{ internal_link("%module%.%controller%/modify?id=" ~ %short%.id) }}" method="post">
+	<fieldset>
+		<legend>Fields of %lowercase_model%</legend>
+
+		%field_boxes%
+	</fieldset>
+
+	<div class="actions">
+		<input class="primary btn" type="submit" value="修改" />
+		<a href="{{ internal_link("%module%.%controller%") }}" class="btn">回到列表</a>
+	</div>
+</form>
+{% endblock %}

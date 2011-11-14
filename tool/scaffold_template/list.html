@@ -1,0 +1,35 @@
+{% extends "scaffold/layout.html" %}
+
+{% block title %}%lowercase_model% List{% endblock%}
+
+{% block content %}
+
+<!-- 功能 -->
+<div class="row">
+	<div class="span10">
+		<a href="{{ internal_link("%module%.%controller%/create") }}" class="btn success" id="create_btn">新增</a>
+	</div>
+</div>
+
+<!-- 列表 -->
+<table class="zebra-striped">
+	<thead>
+		<tr>
+			%heading_field%
+			<th>動作</th>
+		</tr>
+	</thead>
+	<tbody>
+	{% for %short% in %shorts% %}
+		<tr>
+			%data_field%
+			<td>
+				<a class="btn danger delete-link" href="{{ internal_link("%module%.%controller%/remove?id=" ~ %short%.id) }}">刪除</a>
+				<a class="btn info" href="{{ internal_link("%module%.%controller%/modify?id=" ~ %short%.id) }}">修改</a>
+			</td>
+
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% endblock %}

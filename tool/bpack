@@ -1,175 +1,36 @@
 #!/bin/bash
 
+# define path
+export bPack_Directory=${0/\/bpack/}
+export ProjectDirectory=$(pwd)
 
-if [ "$1" == "generate" ] || [ "$1" == "g" ]; then
+# include core module
+source "$bPack_Directory/console/console_basic.sh"
 
-	if [ ! -L ./lib/bPack ]; then
-		echo "please goto project root folder"
-		exit 0
-	fi
+# include additional module
+require console.message
+require bpack.func
+require locale.en
 
-	if [ "$2" == "scaffold" ]; then
+# start processing
+section_break
 
-		if [ "$3" == "" ]; then
-			echo "No module name"
-			exit 0
-		fi
+# if give only module like init
 
-		if [ "$4" == "" ]; then
-			echo "No Controller name"
-			exit 0
-		fi
-
-		if [ "$5" == "" ]; then
-			echo "No Model name"
-			exit 0
-		fi
-
-		if [ "$6" == "" ]; then
-			echo "No model purual form"
-			exit 0
-		fi
-
-		if [ ! -e ./config/dev/database.yaml ]; then
-			echo "NO database connection info"
-			exit 0
-		fi
-
-		if [ ! -e ./model/ScaffoldController.php ]; then
-			cp ~/Playground/bPack/tool/ScaffoldController.php ./model/ScaffoldController.php
-
-			echo "Scaffold Controller Base copied."
-		fi
-
-		if [ ! -e ./tpl/scaffold ]; then
-			cp -r ~/Playground/bPack/tool/scaffold ./tpl/scaffold
-
-			echo "Scaffold Layout copied."
-		fi
-
-		if [ "$(cat ./config/bundle | grep Flash)" == "" ]; then
-
-			echo "Install Flash bundle"
-
-			echo "Flash" 1>> ./config/bundle
-			bpack bundle update
-
-			exit 0
-		fi
-
-		if [ ! -e "./do/$3" ]; then
-			echo "create module directory"
-			mkdir "./do/$3"
-		fi
-
-		if [ -e "./do/$3/$4.php" ];then
-			echo "controller exists, remove old? (y/n)"
-			
-			read confirm
-			
-			if [ "$confirm" == "y" ] || [ "$confirm" == "Y" ]; then
-
-				rm -f "./do/$3/$4.php"
-
-			else
-				echo "please confirm the existing controller $3/$4.php"
-				exit 0
-			fi
-
-		fi
-
-		lowercase_model="$(echo $5 | tr '[A-Z]' '[a-z]')"
-
-		cat ~/Playground/bPack/tool/scaffold_controller.php | sed "s/%module%/$3/g" | sed "s/%controller%/$4/g" | sed "s/%lowercase_model%/$lowercase_model/g" | sed "s/%lowercase_models%/$6/g" | sed "s/%model_name%/$5/g" > "./do/$3/$4.php"
-
-		echo "Scaffold controller generated."
-
-		# prepare template and done
-		#php ~/Playground/bPack/tool/generate_scaffold.php $3 $4 $5
-
-		#echo "Scaffold template generated."
-
-		echo
-		echo "--------------------------"
-		echo "Scaffold is ready."
-		echo "--------------------------"
-
-		exit 0
-	fi
-
-	if [ "$2" == "model" ]; then
-		
-		echo
-
-		if [ ! -e ./model/Model ]; then
-			echo "Model directory not exists, we build one."
-			mkdir ./model/Model
-		fi
-
-		if [ -e "./model/Model/$3.php" ]; then
-			echo "Model [$3] had exists, remove old."
-			rm "./model/Model/$3.php"
-		fi
-		
-		php ~/Playground/bPack/tool/generate_model.php $3 $4 $5
-		echo "Model [$3] had been created. Please modify the file to fit your need.";
-
-		echo
-	fi
+if [ -n "$2" ]; then
+	require_filename="bpack.$1.$2"
+	shift 2
+else
+	require_filename="bpack.$1"
+	shift
 fi
 
-# bpack init
-if [ "$1" == "init" ]; then
+require $require_filename $@
 
-	# check if this working dir had have lib/bPack
-
-	if [ -L ./lib/bPack ]; then
-		echo "This directory had installed bPack"
-	else
-		perl ~/Playground/bPack/tool/init.pl
-	fi
-
-	exit 0;
+# if file not exists, go help
+if [ $? -eq 0 ]; then
+	require "bpack.help"
 fi
 
-if [ "$1" == "bundle" ]; then
-	if [ "$2" == "modify" ]; then
-		if [ ! -e ./config/bundle ]; then
-			touch ./config/bundle
-		fi
-
-		vi ./config/bundle
-		exit 0;
-	fi
-
-	if [ "$2" == "init" ]; then
-		if [ ! -e ./config/bundle ]; then
-			touch ./config/bundle
-
-			echo "Please modify file config/bundle, and then execute bpack bundle update to install these packages."
-
-			exit 0
-		else
-			echo "This directory had initlizited the bundle, please execute bpack bunlde updtae"
-		fi
-
-	fi
-
-	if [ "$2" == "update" ]; then
-
-		if [ ! -L ./lib/bPack ]; then
-			echo "please goto project root folder"
-			exit 0
-		fi
-
-		php /home/bu/Playground/bPack/tool/bundle_update
-
-		echo "Bundle had been updated"
-	fi
-
-fi
-
-# modify this script
-if [ "$1" == "modify" ]; then
-	vi ~/Playground/bPack/tool/bpack
-fi
+# end 
+section_break

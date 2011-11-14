@@ -9,6 +9,7 @@ class ScaffoldController extends ApplicationController
 		$this->view = new bPack_View(new bPack_View_Twig);
 
         $this->plugin_add('Flash');
+        $this->plugin_add('TwigURL');
 
         $this->view->assign('flash', $this->_flash_expose());
         $this->view->assign('sitename', 'Scaffold');

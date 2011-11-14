@@ -1,0 +1,17 @@
+{% extends "scaffold/layout.html" %}
+
+{% block title %}Add %lowercase_model%{% endblock %}
+
+{% block content %}
+	<form action="{{ internal_link("%module%.%controller%/create") }}" method="post">
+		<fieldset>
+			<legend>Fields of %lowercase_model%</legend>
+			%field_boxes%
+		</fieldset>
+
+		<div class="actions">
+			<input type="submit" value="新增%lowercase_model%" class="btn primary" />
+			<a href="{{ internal_link("%module%.%controller%") }}" class="btn">回到列表</a>
+		</div>
+	</form>
+{% endblock %}

@@ -4,15 +4,6 @@ use strict;
 use Cwd;
 use File::Basename;
 
-print "bPack MVC Project Init Script v0.4\n\n";
-print "Are you sure create bPack MVC Project under this directory? (y/N)  ";
-
-my $confirm = <STDIN>;
-chomp $confirm;
-exit unless ($confirm eq "y" || $confirm eq "Y");
-
-# start creation
-
 # config
 mkdir("config",0755);
 mkdir("config/dev",0755);
@@ -174,6 +165,3 @@ bPack_Dispatcher::run($route);';
 close (INDEX_HANDLE);
 
 # END
-print "\n\nbPack MVC inited.\nBut there's few thing should do: \n\n";
-print "fix URI prefix in config/dev/config.php, according to your need\n";
-

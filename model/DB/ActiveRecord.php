@@ -67,7 +67,7 @@ abstract class bPack_DB_ActiveRecord
                 $field_schema[] = " `$col` $col_type NOT NULL";
             }
 
-            $schema_sql .= "(".implode(',', $field_schema).' ' .$index_sql.")  ENGINE=MyISAM  DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
+            $schema_sql .= "(".implode(',', $field_schema).' ' .$index_sql.")  ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
         }
         
         return $schema_sql;
@@ -121,6 +121,11 @@ abstract class bPack_DB_ActiveRecord
             return new bPack_DB_ActiveRecord_Entry($this->connection, $this->table_name, $this->table_column, $data);
         }
     }
+
+	public function getColumns()
+	{
+		return $this->table_column;
+	}
 
     public function create_new_entry()
     {

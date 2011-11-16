@@ -321,7 +321,7 @@ class ActiveRecord_Condition_Like implements ActiveRecord_ConditionOperator
 
     public function getSQL()
     {
-        return "'{$this->col}' LIKE '{$this->string}'";
+        return "`{$this->col}` LIKE '{$this->string}'";
     }
 
     public function setColumn($name)

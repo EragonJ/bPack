@@ -498,12 +498,23 @@ class ActiveRecord_Condition_Between implements ActiveRecord_ConditionOperator
 class ActiveRecord_Condition_In implements ActiveRecord_ConditionOperator
 {
 	protected $col = '';
-    public function __construct($obj, $col = '')
-    {
-		$this-> obj = $obj;
+	protected $src_col = '';
+	protected $obj = '';
 
-		$this->setColumn($col);
+    public function __construct($obj,$source_col = 'id')
+    {
+		$this->obj = $obj;
+
+		$this->setSourceColumn($source_col);
     }
+
+	public function setSourceColumn($col)
+	{
+		if($this->src_col == '')
+		{
+			$this->src_col = $col;
+		}
+	}
 
 	public function setColumn($col)
 	{
@@ -519,7 +530,7 @@ class ActiveRecord_Condition_In implements ActiveRecord_ConditionOperator
 
 		foreach($this->obj as $obj)
 		{
-			$data[] = "'". $obj->rowid . "'";
+			$data[] = "'". $obj->{$this->src_col} . "'";
 		}
 
 		return implode(",", $data);

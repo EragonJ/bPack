@@ -2,9 +2,12 @@
 
 class bPack_Response
 {
+	// if user given a !-started address, we make it unescaped.
+	protected $noEscape = false;
+
     public function go($address = '')
     {
-        $this->redirect($this->generateAddress($this->addressParse($address)));
+        $this->redirect($this->get_internal_link($address));
     }
 
     public function IsAttachment($filename, $mime)
@@ -21,9 +24,16 @@ class bPack_Response
     }
 
 
-    public function addressParse($address)
+    protected function addressParse($address)
     {
         $parser = new GoParser;
+		
+		if(substr($address, 0, 1) == "!")
+		{
+			$address = substr($address, 1, strlen($address)-1);
+			$this->noEscape = true;
+		}
+
         return $parser->parse($address);
     }
 
@@ -38,7 +48,7 @@ class bPack_Response
         {
             return $this->generateRewriteAddress($route);
         }
-        
+
         $address = bPack_Application_BASE_URI;
         $address .= 'index.php?module=';
         $address .= $route->module;
@@ -51,9 +61,18 @@ class bPack_Response
         {
             foreach($route->parameters as $k=>$v)
             {
-                $address .= "&$k=".urlencode($v);
+				if($this->noEscape)
+				{
+					$address .= "&$k=$v";
+				}
+				else
+				{
+					$address .= "&$k=".urlencode($v);
+				}
             }
         }
+
+		$this->noEscape = false;
 
         return $address;
     }
@@ -75,7 +94,15 @@ class bPack_Response
             foreach($route->parameters as $k=>$v)
             {
                 $i++;
-                $address .= "$k=".urlencode($v);
+
+				if($this->noEscape)
+				{
+					$address .= "$k=$v";
+				}
+				else
+				{
+					$address .= "$k=".urlencode($v);
+				}
                 
                 if(($parameters_numbers-$i) > 0)
                 {
@@ -84,6 +111,8 @@ class bPack_Response
             }
 
         }
+
+		$this->noEscape = false;
 
         return $address;
 

@@ -528,9 +528,20 @@ class ActiveRecord_Condition_In implements ActiveRecord_ConditionOperator
 	{
 		$data =array();
 
-		foreach($this->obj as $obj)
+		if($this->obj instanceOf bPack_DB_ActiveRecord_Entry)
 		{
-			$data[] = "'". $obj->{$this->src_col} . "'";
+			$data[] = "'". $this->obj->{$this->src_col} . "'";
+		}
+		elseif($this->obj instanceOf bPack_DB_ActiveRecord_Collection)
+		{
+			foreach($this->obj as $obj)
+			{
+				$data[] = "'". $obj->{$this->src_col} . "'";
+			}
+		}
+		else
+		{
+			throw new ActiveRecord_Exception("In need bPack ActiveRecord collection or entry");
 		}
 
 		return implode(",", $data);

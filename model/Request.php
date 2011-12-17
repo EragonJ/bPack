@@ -67,7 +67,15 @@ class bPack_Request
 
     public static function server($var_name ,$default_value = false, $type = bP_STRING,$option = '')
     {
-        return self::_input(INPUT_SERVER,$var_name ,$default_value, $type,$option);
+        $value = self::_input(INPUT_SERVER,$var_name ,$default_value, $type,$option);
+
+		/* dirty workaround for remote addr ipv6 to ipv4 when localhost */
+		if($var_name == 'REMOTE_ADDR' && $value = '::1')
+		{
+			return '127.0.0.1';
+		}
+
+		return $value;
     }
 
     public static function clean($value, $type = bP_STRING)

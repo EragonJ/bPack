@@ -61,7 +61,7 @@ class bPack_Response
         {
             foreach($route->parameters as $k=>$v)
             {
-				if($this->noEscape)
+				if($this->noEscape == true)
 				{
 					$address .= "&$k=$v";
 				}
@@ -120,6 +120,7 @@ class bPack_Response
 
     public function msgbox($msg, $address)
     {
+		echo '<meta content="text/html; charset=utf-8" http-equiv="Content-Type" />';
         echo '<script type="text/javascript">alert("'.$msg.'");</script>';
         echo "<script type=\"text/javascript\">window.location.href='$address';</script>";
         exit;

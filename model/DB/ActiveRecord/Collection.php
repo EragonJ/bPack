@@ -4,6 +4,7 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
 {
     private $position = 0;
     private $sql = '';
+    private $having_sql = '';
 
     protected $columns = array();
     protected $connection = null;
@@ -27,18 +28,15 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
         {
             $col_condition = str_replace($function_name, 'having_', '');
 
-            if(strpos($col_condition, '_by_') !== FALSE)
-            {
-                $col_temp = explode('_', $col_condition);
+			/* eg: having_agent_viewed_at() get agent_viewed_at <--- column name*/
+			/* todo: implment a query parser */
 
-                $col = $col_temp[0];
-                $col_by = $col_temp[1];
-            }
-            else
-            {
-                $col = $col_condition;
-                $col_by = 'id';
-            }
+			if($argument instanceof ActiveRecord_ConditionOperator)
+			{
+				$this->having_sql = ' ' . $argument->setColumn($col_condition)->getSQL() . ' ';
+			}
+
+			return $this;
         }
     }
 
@@ -132,15 +130,15 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
         {
             $sql = array();
             
-            foreach($this->orderby as $col => $dir)
+            foreach($this->orderby as $col => $setting)
             {
-				if(strpos($col, '`') !== FALSE)
+				if(strpos($col, '`') !== FALSE || isset($setting['no_quoting']))
 				{
-					$sql[] = "$col $dir";
+					$sql[] = "$col {$setting['direction']}";
 				}
 				else
 				{
-                	$sql[] = "`$col` $dir";
+                	$sql[] = "`$col` {$setting['direction']}";
 				}
             }
 
@@ -237,7 +235,7 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
 
     protected function generateData()
     {
-        $this->sql = "SELECT " . $this->generateSelection() . "FROM `{$this->table_name}` ". $this->condition . $this->generateGroupBySQL() . $this->generateOrderBySQL() . $this->generateLimitSQL() . ';';
+        $this->sql = "SELECT " . $this->generateSelection() . "FROM `{$this->table_name}` ". $this->condition . $this->generateGroupBySQL() . $this->having_sql . $this->generateOrderBySQL() . $this->generateLimitSQL() . ';';
 
         $dataset = $this->connection->query($this->sql )->fetchAll(PDO::FETCH_ASSOC);
 
@@ -328,12 +326,17 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
 
     public function orderBy($column, $direction = 'ASC')
     {
+		$setting = array();
+
 		if($column instanceof AR_modifier)
 		{
 			$column = $column->returnData();
+			$setting['no_quoting'] = true;
 		}
 
-        $this->orderby[$column] = $direction;
+		$setting['direction'] = $direction;
+
+        $this->orderby[$column] = $setting;
         $this->required_regenerate = true;
 
         return $this;

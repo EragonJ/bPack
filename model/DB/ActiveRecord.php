@@ -83,6 +83,25 @@ abstract class bPack_DB_ActiveRecord
         return $this->connection->exec($this->getSchema());
     }
 
+	public function __get($name)
+	{
+		if(substr($name, 0, 1) == '_')
+		{
+			$column_name = substr($name, 1, strlen($name) - 1);
+
+			if(in_array($column_name, $this->columns))
+			{
+				return $column_name;
+			}
+			else
+			{
+				throw new ActiveRecord_ColumnNotExistException('not found column ' . $column_name);
+			}
+		}
+
+		throw new ActiveRecord_Exception('not found ' . $name);
+	}
+
     public function __construct()
     {
         $this->connection = bPack_DB::getInstance();
@@ -229,9 +248,7 @@ abstract class bPack_DB_ActiveRecord
         }
 
         $object->setColumn($column);
-
-        return $object->getSQL();
-    }
+return $object->getSQL(); }
 
 	public function extractPrimaryKey()
 	{
@@ -294,6 +311,35 @@ interface ActiveRecord_ConditionOperator
     public function setColumn($col);
 }
 
+class ActiveRecord_Condition_NotNull implements ActiveRecord_ConditionOperator
+{
+	public function getSQL()
+	{
+		return "`{$this->col}` != NULL";
+	}
+
+	public function setColumn($col)
+	{
+		$this->col = $col;
+
+		return $this;
+	}
+}
+
+class ActiveRecord_Condition_isNull implements ActiveRecord_ConditionOperator
+{
+	public function getSQL()
+	{
+		return "`{$this->col}` = NULL";
+	}
+
+	public function setColumn($col)
+	{
+		$this->col = $col;
+
+		return $this;
+	}
+}
 class ActiveRecord_Condition_Plain implements ActiveRecord_ConditionOperator
 {
     public function __construct($value)
@@ -309,6 +355,7 @@ class ActiveRecord_Condition_Plain implements ActiveRecord_ConditionOperator
     public function setColumn($name)
     {
         $this->col = $name;
+		return $this;
     }
 }
 
@@ -327,6 +374,7 @@ class ActiveRecord_Condition_Like implements ActiveRecord_ConditionOperator
     public function setColumn($name)
     {
         $this->col = $name;
+		return $this;
     }
 }
 
@@ -350,6 +398,7 @@ class ActiveRecord_Condition_StatementAnd implements ActiveRecord_ConditionOpera
     public function setColumn($col)
     {
         $this->col = $col;
+		return $this;
     }
 
     public function getSQL()
@@ -388,6 +437,7 @@ class ActiveRecord_Condition_MultipleAnd implements ActiveRecord_ConditionOperat
     public function setColumn($col)
     {
         $this->col = $col;
+		return $this;
     }
 
     public function getSQL()
@@ -422,6 +472,7 @@ class ActiveRecord_Condition_MultipleOr implements ActiveRecord_ConditionOperato
     public function setColumn($col)
     {
         $this->col = $col;
+		return $this;
     }
 
     public function getSQL()
@@ -446,6 +497,7 @@ class ActiveRecord_Condition_NotAnd implements ActiveRecord_ConditionOperator
     public function setColumn($col)
     {
         $this->col = $col;
+		return $this;
     }
     
     public function getSQL()
@@ -482,6 +534,7 @@ class ActiveRecord_Condition_Between implements ActiveRecord_ConditionOperator
 	public function setColumn($col)
 	{
 		$this->col = $col;
+		return $this;
 	}
 
     public function getSQL()
@@ -514,6 +567,8 @@ class ActiveRecord_Condition_In implements ActiveRecord_ConditionOperator
 		{
 			$this->src_col = $col;
 		}
+
+		return $this;
 	}
 
 	public function setColumn($col)
@@ -522,6 +577,8 @@ class ActiveRecord_Condition_In implements ActiveRecord_ConditionOperator
 		{
 			$this->col = $col;
 		}
+
+		return $this;
 	}
 
 	protected function generateIn()

@@ -30,13 +30,13 @@ if [ ! -e ./config/dev/database.yaml ]; then
 fi
 
 if [ ! -e ./model/ScaffoldController.php ]; then
-	cp ~/Playground/bPack/tool/ScaffoldController.php ./model/ScaffoldController.php
+	cp "$bPack_Directory/ScaffoldController.php" ./model/ScaffoldController.php
 
 	response "$copied" "Scaffold Base Controller"
 fi
 
 if [ ! -e ./tpl/scaffold ]; then
-	cp -r ~/Playground/bPack/tool/scaffold ./tpl/scaffold
+	cp -r "$bPack_Directory/scaffold" ./tpl/scaffold
 
 	response "$copied" "Scaffold Layout"
 fi
@@ -81,7 +81,7 @@ fi
 
 lowercase_model="$(echo $4 | tr '[A-Z]' '[a-z]')"
 
-cat ~/Playground/bPack/tool/scaffold_controller.php | sed "s/%module%/$2/g" | sed "s/%controller%/$3/g" | sed "s/%lowercase_model%/$lowercase_model/g" | sed "s/%short%/$5/g" | sed "s/%model%/$4/g" | sed "s/%shorts%/$6/g"> "./do/$2/$3.php"
+cat "$bPack_Directory/scaffold_controller.php" | sed "s/%module%/$2/g" | sed "s/%controller%/$3/g" | sed "s/%lowercase_model%/$lowercase_model/g" | sed "s/%short%/$5/g" | sed "s/%model%/$4/g" | sed "s/%shorts%/$6/g"> "./do/$2/$3.php"
 
 response "$created" "Scaffold controller [Controller_$2_$3]"
 
@@ -114,7 +114,7 @@ if [ -e "./tpl/$2/$3/list.html" ];then
 
 fi
 
-php ~/Playground/bPack/tool/generate_scaffold.php "$2" "$3" "$4" "$5" "$6"
+php "$bPack_Directory/generate_scaffold.php" "$2" "$3" "$4" "$5" "$6"
 
 response "$created" "Scaffold controller templates"
 response "$success" "Scaffold of $cyan$2.$3$white Ready."

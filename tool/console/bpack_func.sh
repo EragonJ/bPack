@@ -24,7 +24,7 @@ function bpack_create_model()
 		rm "./model/Model/$1.php"
 	fi
 	
-	php ~/Playground/bPack/tool/generate_model.php "$1" "$2" "$3"
+	php "$bPack_Directory/generate_model.php" "$1" "$2" "$3"
 	response "$created" "Model [$1]"
 
 	echo

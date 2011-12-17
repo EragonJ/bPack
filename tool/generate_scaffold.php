@@ -2,6 +2,7 @@
 
 define('bPack_Application_Directory', getcwd() . "/");
 define('bPack_Application_Environment','dev');
+define('bPack_Directory', '/home/bu/Libraries/bPack/tool');
 
 require "./lib/bPack/model/Loader.php";
 bPack_Loader::run();
@@ -30,7 +31,7 @@ $lower_model = strtolower($modelname);
 //list: lowercase_model, short, shorts, heading_field, data_field, module, controller
 if(true)
 {
-	$list = file_get_contents('/home/bu/Playground/bPack/tool/scaffold_template/list.html');
+	$list = file_get_contents(bPack_Directory . '/scaffold_template/list.html');
 
 	$list = str_replace('%lowercase_model%', $lower_model, $list);
 	$list = str_replace('%short%', $short, $list);
@@ -58,12 +59,12 @@ if(true)
 // create: lowercase_model, field_boxes
 if(true)
 {
-	$create = file_get_contents('/home/bu/Playground/bPack/tool/scaffold_template/create.html');
+	$create = file_get_contents(bPack_Directory . '/scaffold_template/create.html');
 	$create = str_replace('%lowercase_model%', $lower_model, $create);
 	$create = str_replace('%module%', $module, $create);
 	$create = str_replace('%controller%', $controller, $create);
 
-	$modify = file_get_contents('/home/bu/Playground/bPack/tool/scaffold_template/modify.html');
+	$modify = file_get_contents(bPack_Directory . '/scaffold_template/modify.html');
 	$modify = str_replace('%lowercase_model%', $lower_model, $modify);
 	$modify = str_replace('%module%', $module, $modify);
 	$modify = str_replace('%short%', $short, $modify);

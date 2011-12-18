@@ -30,8 +30,13 @@ class Plugin_TwigHelper extends bPack_Event_Plugin implements Twig_ExtensionInte
     public function initRuntime(Twig_Environment $environment) { return; }
     public function getTokenParsers() { return array(); }
     public function getNodeVisitors() { return array(); }
-    public function getFilters() { return array(); }
-    public function getTests() { return array(); }
+    
+	public function getFilters() 
+	{
+		return array('nl2br' => new Twig_Filter_Function('nl2br', array('is_safe' => array('html'))));
+	}
+    
+	public function getTests() { return array(); }
     
 	public function getFunctions() 
 	{ 

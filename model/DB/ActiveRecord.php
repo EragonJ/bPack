@@ -118,7 +118,7 @@ abstract class bPack_DB_ActiveRecord
 
     public function last()
     {
-        $sql = "SELECT * FROM `{$this->table_name}` ORDER BY ".$this->tag_columns['primary_key'][0] ." DESC LIMIT 1;";
+        $sql = "SELECT * FROM `{$this->table_name}` ORDER BY `".$this->extractPrimaryKey()."` DESC LIMIT 1;";
         $data = $this->connection->query($sql)->fetch(PDO::FETCH_ASSOC);
 
         return $this->generateEntryObject($data);
@@ -248,8 +248,7 @@ abstract class bPack_DB_ActiveRecord
         }
 
         $object->setColumn($column);
-return $object->getSQL(); }
-
+	return $object->getSQL(); }
 	public function extractPrimaryKey()
 	{
 		foreach($this->table_column as $col_name => $data)

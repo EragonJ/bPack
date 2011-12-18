@@ -1,6 +1,6 @@
 <?php
 
-class Plugin_TwigURL extends bPack_Event_Plugin implements Twig_ExtensionInterface
+class Plugin_TwigHelper extends bPack_Event_Plugin implements Twig_ExtensionInterface
 {
     protected function pluginInitialization()
     {

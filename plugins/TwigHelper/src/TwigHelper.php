@@ -19,7 +19,7 @@ class Plugin_TwigHelper extends bPack_Event_Plugin implements Twig_ExtensionInte
 
 	public function stylesheet_link_tag($filename = '')
 	{
-		return '<link rel="stylesheet" type="text/css" href="' . bPack_Application_BASE_URI . 'public/css/' . $filename . '.css">';
+		return '<link rel="stylesheet" type="text/css" href="' . bPack_Application_BASE_URI . 'public/css/' . $filename . '.css" />';
 	}
 
     protected function registerFunctions()

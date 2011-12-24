@@ -1,16 +1,11 @@
 <?php
 class bPack_View_JSON implements bPack_View_Adaptee
 {
-    protected $_data_set = null;
-    
-    public function __construct()
-    {
-        $this->_data_set = new bPack_DataContainer();
-    }
+    protected $_data_set = array();
     
     public function assign($key,$value = '')
     {
-        $this->_data_set->{$key} = $value;
+        $this->_data_set[$key] = $value;
         return true;
     }
 

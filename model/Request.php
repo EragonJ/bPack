@@ -67,6 +67,9 @@ class bPack_Request
 
     public static function server($var_name ,$default_value = false, $type = bP_STRING,$option = '')
     {
+		$var_name = strtoupper($var_name);
+		$var_name = str_replace('-', '_' , $var_name);
+
         $value = self::_input(INPUT_SERVER,$var_name ,$default_value, $type,$option);
 
 		/* dirty workaround for remote addr ipv6 to ipv4 when localhost */

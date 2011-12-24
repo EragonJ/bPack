@@ -52,11 +52,20 @@ class bPack_Image
 
 		// which side this is?
 		$side = ($height_existence) ? 'height' : 'width';
-		$side_value = ($height_existence) ? $limit['height'] : $limit['width'];
-
-		// if not exist both, the other side would be set in scale
 		$other_side = (($side == 'height') ? 'width' : 'height');
-		$other_side_value =  $this->_getIntegerRounded($this->_image_info[$other_side] * $side_value / $this->_image_info[$side]);
+
+		/* the resize is under one rule that source is bigger than limit */
+		if($this->_image_info[$side] > $limit[$side])
+		{
+			$side_value = ($height_existence) ? $limit['height'] : $limit['width'];
+			$other_side_value =  $this->_getIntegerRounded($this->_image_info[$other_side] * $side_value / $this->_image_info[$side]);
+		}
+		else
+		{
+			$side_value = $this->_image_info[$side];
+			$other_side_value = $this->_image_info[$other_side];
+		}
+
 
 		return array( $side => $side_value, $other_side => $other_side_value);
 	}

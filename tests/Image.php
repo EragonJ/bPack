@@ -96,5 +96,31 @@ class ImageTest extends PHPUnit_Framework_TestCase
 		rename('ImageTestPic.jpg.bak', 'ImageTestPic.jpg');
 	}
 
+	public function testResize_IfSourceIsSmallerThanLimitOneSide()
+	{
+		unset($this->_image);
 
+		$this->_image = new bPack_Image('ImageTestPic2.gif');
+		$assertedSetting = array('height' => 147, 'width' => 150);
+
+		$targetSetting = $this->_image->calcResizedSize(array( 'width' => 400));
+		$this->assertEquals($assertedSetting, $targetSetting);
+
+	}
+
+	public function testResize_IfSourceIsSmallerThanLimitTwoSide()
+	{	
+		unset($this->_image);
+
+		$this->_image = new bPack_Image('ImageTestPic2.gif');
+		$assertedSetting = array('height' => 147, 'width' => 150);
+
+		$targetSetting = $this->_image->calcResizedSize(array( 'width' => 400, 'height' => 300));
+		$this->assertEquals($assertedSetting, $targetSetting);
+	}
+
+	public function tearDown()
+	{
+		unset($this->_image);
+	}
 }

@@ -19,21 +19,31 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
     protected $condition = '';
     protected $selection = array();
 
-    protected $generated_data = null;
+    protected $generateData = null;
     protected $required_regenerate = true;
+
+	public function destroy()
+	{
+		$this->generateData();
+
+		foreach($this->generateData as &$data)
+		{
+			$data->destroy();
+		}
+	}
 
     public function __call($function_name, $argument)
     {
         if(strpos($function_name, 'having_') !== FALSE)
         {
-            $col_condition = str_replace($function_name, 'having_', '');
+            $col_condition = str_replace( 'having_', '', $function_name);
 
 			/* eg: having_agent_viewed_at() get agent_viewed_at <--- column name*/
 			/* todo: implment a query parser */
 
-			if($argument instanceof ActiveRecord_ConditionOperator)
+			if($argument[0] instanceof ActiveRecord_ConditionOperator)
 			{
-				$this->having_sql = ' ' . $argument->setColumn($col_condition)->getSQL() . ' ';
+				$this->having_sql = ' HAVING ' . $argument[0]->setColumn($col_condition)->getSQL() . ' ';
 			}
 
 			return $this;
@@ -116,7 +126,7 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
             return true;
         }
 
-        if($this->required_regenerate === false && is_null($this->generated_data))
+        if($this->required_regenerate === false && is_null($this->generateData))
         {
             return true;
         }

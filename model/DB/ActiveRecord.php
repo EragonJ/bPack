@@ -341,9 +341,10 @@ class ActiveRecord_Condition_isNull implements ActiveRecord_ConditionOperator
 }
 class ActiveRecord_Condition_Plain implements ActiveRecord_ConditionOperator
 {
+	protected $statement = '';
     public function __construct($value)
     {
-        $this->statement = $value;
+        $this->statement = (string) $value;
     }
 
     public function getSQL()

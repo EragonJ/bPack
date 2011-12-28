@@ -59,8 +59,16 @@ class bPack_Router_Rewrite implements bPack_Router_Module
 
 	protected function prepareRequestURI()
 	{
-		$raw_request_uri = str_replace(bPack_Application_BASE_URI, '', $_SERVER['REQUEST_URI']);
-		$request_uri_array = parse_url($raw_request_uri);
+		$raw_request_uri = $_SERVER['REQUEST_URI'];
+
+		$base_uri = bPack_Application_BASE_URI;
+
+		$raw_request_uri_length = strlen($raw_request_uri);
+		$base_uri_length = strlen($base_uri);
+
+		$cropped_uri = substr($raw_request_uri, $base_uri_length, $raw_request_uri_length - $base_uri_length);
+
+		$request_uri_array = parse_url($cropped_uri);
 
 		$request_path = $request_uri_array['path'];
 

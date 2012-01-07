@@ -48,6 +48,22 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
 
 			return $this;
         }
+
+		if(strpos($function_name, 'also_') !== FALSE)
+		{
+			$col_condition = str_replace('also_', '', $function_name);
+			
+			if($argument[0] instanceof ActiveRecord_ConditionOperator)
+			{
+				$this->condition .= ' AND ' . $argument[0]->setColumn($col_condition)->getSQL();
+			}
+			else
+			{
+				$this->condition .= ' AND `' .$col_condition. '` = '. "'".$argument[0]."'";
+			}
+
+			return $this;
+		}
     }
 
 	protected function generateSelection()

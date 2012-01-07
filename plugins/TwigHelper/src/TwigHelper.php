@@ -33,7 +33,12 @@ class Plugin_TwigHelper extends bPack_Event_Plugin implements Twig_ExtensionInte
     
 	public function getFilters() 
 	{
-		return array('nl2br' => new Twig_Filter_Function('nl2br', array('is_safe' => array('html'))));
+		return array('nl2br' => new Twig_Filter_Method($this, 'nl2br', array('is_safe' => array('html'))));
+	}
+
+	public function nl2br($string)
+	{
+		return strtr($string, array("\r\n" => "<br />", "\r" => "<br />", "\n" => "<br />"));
 	}
     
 	public function getTests() { return array(); }

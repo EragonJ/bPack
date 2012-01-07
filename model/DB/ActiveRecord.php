@@ -548,6 +548,69 @@ class ActiveRecord_Condition_Between implements ActiveRecord_ConditionOperator
 	}
 }
 
+class ActiveRecord_Condition_Equal implements ActiveRecord_ConditionOperator
+{
+	protected $col = '';
+	protected $src_col = '';
+	protected $obj = '';
+
+    public function __construct($value)
+    {
+		$this->noequal_to = $value;
+    }
+
+	public function setColumn($col)
+	{
+		if($this->col == '')
+		{
+			$this->col = $col;
+		}
+
+		return $this;
+	}
+
+    public function getSQL()
+    {
+		return "`{$this->col}` = '{$this->noequal_to}'";
+    }
+
+	public function __toString()
+	{
+		return $this->getSQL();
+	}
+}
+class ActiveRecord_Condition_NotEqual implements ActiveRecord_ConditionOperator
+{
+	protected $col = '';
+	protected $src_col = '';
+	protected $obj = '';
+
+    public function __construct($value)
+    {
+		$this->noequal_to = $value;
+    }
+
+	public function setColumn($col)
+	{
+		if($this->col == '')
+		{
+			$this->col = $col;
+		}
+
+		return $this;
+	}
+
+    public function getSQL()
+    {
+		return "`{$this->col}` != '{$this->noequal_to}'";
+    }
+
+	public function __toString()
+	{
+		return $this->getSQL();
+	}
+}
+
 class ActiveRecord_Condition_In implements ActiveRecord_ConditionOperator
 {
 	protected $col = '';

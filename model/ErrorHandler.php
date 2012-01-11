@@ -85,15 +85,21 @@ class bPack_ErrorHandler
     }
 }
 
-/**
- * bPack Module used expection
- * should only used in bPack Modules
- */
+/*
+	bPack Application Exception
+*/
+class bPack_Application_Exception extends Exception {}
+
+/*
+	bPack Expection, and should only used in bPack Modules
+*/
 class bPack_Exception extends Exception {}
-/**
- * Generic exception for error
- */
+
+/*
+	Generic exception for error
+*/
 class bPack_ErrorException extends ErrorException {}
+
 /**
  * bPack NullArgument Exception
  */

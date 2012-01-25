@@ -341,8 +341,7 @@ class ActiveRecord_Condition_isNull implements ActiveRecord_ConditionOperator
 }
 class ActiveRecord_Condition_Plain implements ActiveRecord_ConditionOperator
 {
-	protected $statement = '';
-    public function __construct($value)
+	protected $statement = ''; public function __construct($value)
     {
         $this->statement = (string) $value;
     }
@@ -659,6 +658,14 @@ class ActiveRecord_Condition_In implements ActiveRecord_ConditionOperator
 				$data[] = "'". $obj->{$this->src_col} . "'";
 			}
 		}
+		elseif(is_array($this->obj))
+		{
+			foreach($this->obj as $obj)
+			{
+				$data[] = "'". $obj . "'";
+			}
+
+		}
 		else
 		{
 			throw new ActiveRecord_Exception("In need bPack ActiveRecord collection or entry");
@@ -677,6 +684,82 @@ class ActiveRecord_Condition_In implements ActiveRecord_ConditionOperator
 		return $this->getSQL();
 	}
 }
+
+class ActiveRecord_Condition_NotIn implements ActiveRecord_ConditionOperator
+{
+	protected $col = '';
+	protected $src_col = '';
+	protected $obj = '';
+
+    public function __construct($obj,$source_col = 'id')
+    {
+		$this->obj = $obj;
+
+		$this->setSourceColumn($source_col);
+    }
+
+	public function setSourceColumn($col)
+	{
+		if($this->src_col == '')
+		{
+			$this->src_col = $col;
+		}
+
+		return $this;
+	}
+
+	public function setColumn($col)
+	{
+		if($this->col == '')
+		{
+			$this->col = $col;
+		}
+
+		return $this;
+	}
+
+	protected function generateIn()
+	{
+		$data =array();
+
+		if($this->obj instanceOf bPack_DB_ActiveRecord_Entry)
+		{
+			$data[] = "'". $this->obj->{$this->src_col} . "'";
+		}
+		elseif($this->obj instanceOf bPack_DB_ActiveRecord_Collection)
+		{
+			foreach($this->obj as $obj)
+			{
+				$data[] = "'". $obj->{$this->src_col} . "'";
+			}
+		}
+		elseif(is_array($this->obj))
+		{
+			foreach($this->obj as $obj)
+			{
+				$data[] = "'". $obj . "'";
+			}
+
+		}
+		else
+		{
+			throw new ActiveRecord_Exception("In need bPack ActiveRecord collection or entry");
+		}
+
+		return implode(",", $data);
+	}
+
+    public function getSQL()
+    {
+		return "`{$this->col}` NOT IN ({$this->generateIn()})";
+    }
+
+	public function __toString()
+	{
+		return $this->getSQL();
+	}
+}
+
 
 
 

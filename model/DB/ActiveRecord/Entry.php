@@ -8,59 +8,196 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
     protected $columns = array();
     protected $tags = array();
 
-    protected $connection = null;
-    protected $table_name = '';
-
     protected $column_tags;
     protected $tag_columns;
     protected $table_column;
 
-    public function offsetExists($offset)
-    {
-        try
-        {
-            $this->__get($offset);
+	protected $_dataObject = null;
 
-            return true;
-        }
-        catch(Exception $e)
-        {
-            return false;
-        }
+	/*
+		constructor
+	*/
+    public function __construct(bPack_DB_ActiveRecord_DataObject $data_obj)
+    {
+		$this->_dataObject = $data_obj;
+
+        $this->table_column = $data_obj->getSchema();
+
+        $this->processTableColumn($this->table_column);
+
+		$this->_processRowRecordData();
+
     }
 
+	/* 
+		public method 
+	*/
     public function exposeData()
     {
         return $this->entry_original_data;
     }
 
-    public function offsetGet($offset)
+    public function destroy()
     {
-        return $this->__get($offset);
+        // return true of false
+        $sql = "DELETE FROM `" . $this->_dataObject->getSchemaName() . "` WHERE ".$this->generatePrimaryKeyQuery(). ";";
+
+        return $this->_dataObject->getConnection()->exec($sql);
     }
 
-    public function offsetSet($offset, $value)
+    public function __set($attribute_name, $value)
     {
-        return $this->__set($offset, $value);
-    }
+        $this->entry_new_data[$attribute_name] = $value;
 
-    public function offsetUnset($offset)
-    {
         return true;
     }
 
-    public function __construct($connection, $table_name, $columns, $data = null)
+    public function __get($attribute_name)
     {
-        $this->connection = $connection;
-
-        $this->table_name = $table_name;
-        $this->table_column = $columns;
-
-        $this->processTableColumn($columns);
-
-        if(!is_null($data))
+        if(in_array($attribute_name, $this->columns))
         {
-            foreach($data as $k => $v)
+			if(isset($this->entry_original_data[$attribute_name]))
+			{
+				if(!is_array($this->entry_original_data[$attribute_name]))
+				{
+					return stripslashes($this->entry_original_data[$attribute_name]);
+				}
+
+				return $this->entry_original_data[$attribute_name];
+
+			}
+		}
+        else
+        {
+            if(in_array($attribute_name, array_keys($this->entry_new_data)))
+            {
+                return $this->entry_new_data[$attribute_name];
+            }
+
+			if(isset($this->entry_original_data[$attribute_name]) && !is_array($this->entry_original_data[$attribute_name]))
+            {
+                return stripslashes($this->entry_original_data[$attribute_name]);
+            }
+			
+			/* we assume that id means primary key */
+			if($attribute_name == 'id')
+			{
+				return stripslashes($this->entry_original_data[$this->generatePrimaryKey()]);
+			}
+			
+			if(isset($this->entry_original_data[$attribute_name]))
+			{
+				return $this->entry_original_data[$attribute_name];
+			}
+
+			/* if we just remove attribute instead giving a getter */
+			if(method_exists($this->_dataObject->getModel() , 'get_' . ucfirst($attribute_name)))
+			{
+				return $this->_dataObject->getModel()->{ 'get_' . ucfirst($attribute_name) }($this);
+			}
+
+        }
+
+        throw new ActiveRecord_ColumnNotExistException("requested field '$attribute_name' doest not exist in schema");
+    }
+
+    public function save()
+    {
+		/* data to store */
+		$data_to_store = $this->_save_prepareData();
+		
+		/* if no data to store, then return exception */
+		if(sizeof($data_to_store) == 0)
+        {
+			throw new ActiveRecord_NullUpdate;
+        }
+
+		/* before update, we have to know the idenitical column */
+		$primary_key_column = $this->generatePrimaryKey();
+		
+		if( $this->_save_isUpdate($primary_key_column) )
+		{
+            $this->processUpdateEveryTime($data_to_store);
+
+            $prepare_sql = "UPDATE `" . $this->_dataObject->getSchemaName() . "` SET " . $this->extractColumnPreparedName($data_be_updated) . " WHERE ".$this->generatePrimaryKeyQuery().";";
+
+            $prepared_stmt = $this->_dataObject->getConnection()->prepare($prepare_sql);
+
+            $data_prepared =array();
+            foreach($data_to_store as $k=> $v)
+            {
+                $data_prepared[':'.$k] = $v;
+            }
+            
+            # return update, true or false
+            return $prepared_stmt->execute($data_prepared);
+        }
+        else
+        {
+            // check if required data were not given
+            $this->processTagRequired($data_to_store);
+            $this->processAutofill($data_to_store);
+
+            $prepare_sql = "INSERT INTO `" . $this->_dataObject->getSchemaName() . "` (".$this->extractColumnName($data_to_store).") VALUES (".$this->extractPreparedColumnName($data_to_store).")";
+
+            $prepared_stmt = $this->_dataObject->getConnection()->prepare($prepare_sql);
+            
+            $data_prepared =array();
+            foreach($data_to_store as $k=> $v)
+            {
+                $data_prepared[':'.$k] = $v;
+            }
+
+            // return rowid
+            $prepared_stmt->execute($data_prepared);
+
+            return $this->_dataObject->getConnection()->lastInsertId();
+        }
+
+        return false;
+    }
+
+	/* 
+		method of ArrryAccess
+	*/
+	public function offsetExists($offset)
+	{
+		try
+		{
+			$this->__get($offset);
+
+			return true;
+		}
+		catch(Exception $e)
+		{
+			return false;
+		}
+	}
+
+	public function offsetGet($offset)
+	{
+		return $this->__get($offset);
+	}
+
+	public function offsetSet($offset, $value)
+	{
+		return $this->__set($offset, $value);
+	}
+
+	public function offsetUnset($offset)
+	{
+		return true;
+	}
+
+
+	/*
+		protected functin: helper function 
+	*/
+	protected function _processRowRecordData()
+	{
+		if($this->_dataObject->hasData())
+        {
+            foreach($this->_dataObject->getData() as $k => $v)
             {
                 if(strpos($v,'__JSON__') === FALSE)
                 {
@@ -75,20 +212,21 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
                 }
             }
         }
-    }
 
-    protected function processTableColumn($columns)
+	}
+
+    protected function processTableColumn()
     {
-        $this->columns = array_keys($columns);
+        $this->columns = array_keys($this->table_column);
 
-        $this->processTags($columns);
+        $this->processTags();
         
         return true;
     }
 
-    protected function processTags($columns)
+    protected function processTags()
     {
-        foreach($columns as $col=>$col_setting)
+        foreach($this->table_column as $col=>$col_setting)
         {
             if(!isset($col_setting['tag']))
             {
@@ -170,79 +308,36 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
 
 		return "`{$primary_key_name}` = '{$this->entry_original_data[$primary_key_name]}'";
 	}
-
-
-    public function save()
-    {
-        $data_be_updated = array();
+	
+	protected function _save_prepareData()
+	{
+		$data_be_updated = array();
 
         foreach($this->entry_new_data as $name=>$value)
         {
+			/* if value is array, convert into JSON */
             if(is_array($value))
             {
                 $value = "__JSON__" . json_encode($value);
             }
-
+			
+			/* is the new data equals to old data? if so, don't update */
             if(! $this->checkIfSame($value, $name))
             {
                 $data_be_updated[$name] = $value;
             }
         }
 
-        if(sizeof($data_be_updated) == 0)
-        {
-			throw new ActiveRecord_NullUpdate;
-        }
-		
-		$primary_key_column = $this->generatePrimaryKey();
+		return $data_be_updated;
+	}
 
-        if(isset($this->entry_original_data[$primary_key_column]) && $this->entry_original_data[$primary_key_column] !== '')
-        {
-            $this->processUpdateEveryTime($data_be_updated);
-
-            $prepare_sql = "UPDATE `{$this->table_name}` SET " . $this->extractColumnPreparedName($data_be_updated) . " WHERE ".$this->generatePrimaryKeyQuery().";";
-
-            $prepared_stmt = $this->connection->prepare($prepare_sql);
-
-            $data_prepared =array();
-            foreach($data_be_updated as $k=> $v)
-            {
-                $data_prepared[':'.$k] = $v;
-            }
-            
-            //$sql = "UPDATE `{$this->table_name}` SET ".$this->extractColValueHash($data_be_updated)." where " . $this->generatePrimaryKeyQuery() . ";";
-
-            # return update, true or false
-            return $prepared_stmt->execute($data_prepared);
-        }
-        else
-        {
-            // check if required data were not given
-            $this->processTagRequired($data_be_updated);
-
-            $this->processAutofill($data_be_updated);
-
-            $prepare_sql = "INSERT INTO `{$this->table_name}` (".$this->extractColumnName($data_be_updated).") VALUES (".$this->extractPreparedColumnName($data_be_updated).")";
-
-            $prepared_stmt = $this->connection->prepare($prepare_sql);
-            
-            $data_prepared =array();
-            foreach($data_be_updated as $k=> $v)
-            {
-                $data_prepared[':'.$k] = $v;
-            }
-
-            #$sql = "INSERT INTO `{$this->table_name}` (".$this->extractColumnName($data_be_updated).") VALUES (".$this->extractColumnValue($data_be_updated).");";
-
-            // return rowid
-            $prepared_stmt->execute($data_prepared);
-
-            return $this->connection->lastInsertId();
-        }
-
-        return false;
-    }
-
+	protected function _save_isUpdate($primary_key_column)
+	{
+		return 
+			isset($this->entry_original_data[$primary_key_column]) 
+			&& 
+			$this->entry_original_data[$primary_key_column] !== '';
+	}
     protected function extractPreparedColumnName($data)
     {
         $data_sql  = array();
@@ -353,73 +448,23 @@ class bPack_DB_ActiveRecord_Entry implements ArrayAccess
             }
             else
             {
-                $values_sql[] = $this->connection->quote($hash[$col]);
+                $values_sql[] = $this->_dataObject->getConnection()->quote($hash[$col]);
             }
         }
         
         return implode(',', $values_sql);
     }
-
-    public function destroy()
-    {
-        // return true of false
-        $sql = "DELETE FROM `{$this->table_name}` WHERE ".$this->generatePrimaryKeyQuery(). ";";
-
-        return $this->connection->exec($sql);
-    }
-
-    public function __set($attribute_name, $value)
-    {
-        $this->entry_new_data[$attribute_name] = $value;
-
-        return true;
-    }
-
-    public function __get($attribute_name)
-    {
-        if(in_array($attribute_name, $this->columns))
-        {
-			if(isset($this->entry_original_data[$attribute_name]))
-			{
-				if(!is_array($this->entry_original_data[$attribute_name]))
-				{
-					return stripslashes($this->entry_original_data[$attribute_name]);
-				}
-
-				return $this->entry_original_data[$attribute_name];
-
-			}
-
-			return null;
-		}
-        else
-        {
-            if(in_array($attribute_name, array_keys($this->entry_new_data)))
-            {
-                return $this->entry_new_data[$attribute_name];
-            }
-
-			if(isset($this->entry_original_data[$attribute_name]) && !is_array($this->entry_original_data[$attribute_name]))
-            {
-                return stripslashes($this->entry_original_data[$attribute_name]);
-            }
-			
-			/* we assume that id means primary key */
-			if($attribute_name == 'id')
-			{
-				return stripslashes($this->entry_original_data[$this->generatePrimaryKey()]);
-			}
-			
-			if(isset($this->entry_original_data[$attribute_name]))
-			{
-				return $this->entry_original_data[$attribute_name];
-			}
-
-			return null;
-        }
-
-        throw new ActiveRecord_ColumnNotExistException("requested field '$attribute_name' doest not exist in schema");
-    }
 }
 
+class ActiveRecord_ValueFilter_AutofillOnCreate extends ActiveRecord_ValueFilter
+{
+
+}
+
+class ActiveRecord_ValueFilter_Arrayto_JSON extends ActiveRecord_ValueFilter
+{
+
+}
+
+abstract class ActiveRecord_ValueFilter { }
 class ActiveRecord_NullUpdate extends ActiveRecord_Exception {}

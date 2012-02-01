@@ -131,14 +131,16 @@ abstract class bPack_DB_ActiveRecord
             throw new ActiveRecord_RecordNotExistException("ActiveRecord: requested condition had found no data.");
         }
 
-        if(is_null($data))
-        {
-            return new bPack_DB_ActiveRecord_Entry($this->connection, $this->table_name, $this->table_column);
-        }
-        else
-        {
-            return new bPack_DB_ActiveRecord_Entry($this->connection, $this->table_name, $this->table_column, $data);
-        }
+		$dataObject = new bPack_DB_ActiveRecord_DataObject;
+
+		$dataObject
+			->setConnection($this->connection)
+			->setModel($this)
+			->setSchemaName($this->table_name)
+			->setSchema($this->table_column)
+			->setData($data);
+
+		return new bPack_DB_ActiveRecord_Entry($dataObject);
     }
 
 	public function getColumns()
@@ -182,7 +184,7 @@ abstract class bPack_DB_ActiveRecord
 			$value_sql = " WHERE $value_sql";
 		}
 
-		return new bPack_DB_ActiveRecord_Collection($this->connection, $this->table_name, $this->table_column, $this->generateSelection(), $value_sql);
+		return new bPack_DB_ActiveRecord_Collection($this->connection, $this, $this->table_name, $this->table_column, $this->generateSelection(), $value_sql);
     }
 
 	protected function generateSelection()

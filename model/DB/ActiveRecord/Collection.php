@@ -16,6 +16,8 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
 	protected $group_by = '';
     protected $offset = 0;
 
+	protected $model_class = null;
+
     protected $condition = '';
     protected $selection = array();
 
@@ -239,14 +241,16 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
             throw new ActiveRecord_RecordNotExistException("ActiveRecord: requested condition had found no data.");
         }
 
-        if(is_null($data))
-        {
-            return new bPack_DB_ActiveRecord_Entry($this->connection, $this->table_name, $this->table_column);
-        }
-        else
-        {
-            return new bPack_DB_ActiveRecord_Entry($this->connection, $this->table_name, $this->table_column, $data);
-        }
+		$dataObject = new bPack_DB_ActiveRecord_DataObject;
+
+		$dataObject
+			->setConnection($this->connection)
+			->setModel($this->model_class)
+			->setSchemaName($this->table_name)
+			->setSchema($this->table_column)
+			->setData($data);
+
+		return new bPack_DB_ActiveRecord_Entry($dataObject);
     }
 
 	protected function generateGroupBySQL()
@@ -324,9 +328,10 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
         return false;
     }
 
-    public function __construct($connection, $table_name, $columns, $selection, $condition)
+    public function __construct(PDO $connection, bPack_DB_ActiveRecord $parent_class, $table_name, $columns, $selection, $condition)
     {
         $this->connection = $connection;
+        $this->model_class = $parent_class;
         $this->table_name = $table_name;
         $this->condition = $condition;
         $this->selection = $selection;

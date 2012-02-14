@@ -2,42 +2,272 @@
 
 class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterator
 {
-    private $position = 0;
-    private $sql = '';
-    private $having_sql = '';
+/* tested*/
 
-    protected $columns = array();
-    protected $connection = null;
-    protected $table_name = '';
-    protected $table_column = '';
+	/* database connection */
+	protected $_connection = null;
 
-    protected $limit = null;
-    protected $orderby = array();
-	protected $group_by = '';
-    protected $offset = 0;
+	/* model info */
+	protected $_model = null;
+	protected $_schema_name = null;
+	protected $_schema = null;
 
-	protected $model_class = null;
+	/* request condition (where) */
+	protected $_condition = null;
 
-    protected $condition = '';
-    protected $selection = array();
+	/* field to fetch */
+	protected $_selected_fields = null;
 
-    protected $generateData = null;
-    protected $required_regenerate = true;
+	protected $_limit = null;
+	protected $_offset = null;
+	protected $_orderBy = null;
+	protected $_group_by = null;
+	protected $_having = null;
+
+	/* for iterator */
+	protected $_position = 0;
+
+	/* logging */
+	protected $_last_sql = null;
+		
+	/* cache */
+	protected $_columns = null;
+	protected $_entry_dataObject = null;
+
+	/* after queried, store data here */
+	protected $_stored_data = null;
+
+	/* */
+
+    public function __construct(bPack_DB_ActiveRecord_DataObject $dataObject)
+    {
+        $this->_connection = $dataObject->getConnection();
+        $this->_model = $dataObject->getModel();
+
+		$this->_condition =  $dataObject->hasCondition() ? $dataObject->getCondition() : null;
+
+        $this->_schema_name = $dataObject->getSchemaName();
+        $this->_schema = $dataObject->getSchema();
+
+		$this->_prepareSelection();
+		$this->_prepareColumnCache();
+    }
+
+	protected function _prepareSelection()
+	{
+		$this->_selected_fields = array_keys($this->_schema);
+	}
+
+	public function removeAllSelect()
+	{
+		$this->_selected_fields = array($this->_model->_id);
+	}
+
+	public function resetSelect()
+	{
+		$this->_prepareSelection();
+	}
+
+	protected function _prepareColumnCache()
+	{
+		$this->_columns = array_keys($this->_schema);
+	}
+
+	protected function _dataExists()
+	{
+		return !is_null($this->_stored_data);
+	}
+
+	protected function _generateData()
+	{
+		// build the query
+		$sql_statement = array();
+		
+		$sql_statement[] = $this->_getSelectedListing();
+		$sql_statement[] = $this->_getFrom();
+		$sql_statement[] = $this->_getCondition();
+		$sql_statement[] = $this->_getGroupBy();
+		$sql_statement[] = $this->_getHaving();
+		$sql_statement[] = $this->_getOrderBy();
+		$sql_statement[] = $this->_getLimit();
+		$sql_statement[] = $this->_getOffset();
+		
+		// remove all empty slice
+		$sql_statement = array_filter($sql_statement);
+
+		// join them with a space and add a trailing ;
+		$sql = implode(' ', $sql_statement) . ";";
+		
+		$this->_stored_data = $this->_getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+		$this->_last_sql = $sql;
+	}
+
+	protected function _getCondition()
+	{
+		if( $this->_condition )
+		{
+			return "WHERE " . $this->_condition;
+		}
+
+		return;
+	}
+
+	protected function _getHaving()
+	{
+		if( !is_null($this->_having))
+		{
+			return "HAVING " . $this->_having;
+		}
+
+		return;
+	}
+
+	protected function _getSelectedListing()
+	{
+		$schema = $this->_schema;
+
+		return "SELECT `" . implode('`, `', array_filter($this->_selected_fields, function($value) use ($schema) {
+			return !($schema[$value]['type'] == 'virtual');
+		})) ."`";
+	}
+
+	protected function _getFrom()
+	{
+		return "FROM `{$this->_schema_name}`";
+	}
+
+	protected function _getLimit()
+	{
+		if( !is_null($this->_limit) )
+		{
+			if( !is_null($this->_offset) )
+			{
+				return "LIMIT " . $this->_offset . ", ". $this->_limit;
+			}
+
+			return "LIMIT ". $this->_limit;
+		}
+
+		return;
+	}
+
+	protected function _getOffset()
+	{
+		if( !is_null($this->_offset) )
+		{
+			// if limit is not null, then we could guess that we had produced that before
+			if( is_null($this->_limit) )
+			{
+				return "OFFSET " . $this->_offset;
+			}
+		}
+		
+		return;
+	}
+
+	public function group_by($group_by_column = null)
+	{
+		if( !is_null($this->_group_by) )
+		{
+			throw new ActiveRecord_CollectionException("Two groupby column!!");
+		}
+
+		$this->_group_by = $group_by_column;
+
+		return $this;
+	}
+
+	public function _getGroupBy()
+	{
+		if( !is_null($this->_group_by) )
+		{
+			return "GROUP BY `{$this->_group_by}`";
+		}
+	}
+	
+	public function limit($limit_value = null)
+	{
+		$this->_limit = $limit_value;
+
+		return $this;
+	}
+
+	public function offset($offset_value = null)
+	{
+		$this->_offset = $offset_value;
+
+		return $this;
+	}
+
+	public function orderBy($column, $direction = 'DESC')
+	{
+		if( is_null($this->_orderBy) ) 
+		{
+			$this->_orderBy = array();
+		}
+
+		$this->_orderBy[] = array('column' => $column, 'direction' => $direction);
+		
+		return $this;
+	}
+
+	public function _getOrderBy()
+	{
+		if( !is_null($this->_orderBy) )
+		{
+			$orderBy_array = array();
+
+			foreach($this->_orderBy as $order)
+			{
+				$orderBy_array[] = "`{$order['column']}` " . $order['direction'];
+			}
+
+			return "ORDER BY " . implode(', ', $orderBy_array);
+		}
+	}
+
+	public function refresh()
+	{
+		$this->_generateData();
+
+		return $this;
+	}
 
 	public function destroy()
 	{
-		$this->generateData();
+		$sql = "DELETE FROM `{$this->_schema_name}` {$this->_condition};";
 
-		foreach($this->generateData as &$data)
-		{
-			$data->destroy();
-		}
+		return ($this->_getConnection()->query($sql) === FALSE);
 	}
+
+	protected function _getConnection()
+	{
+		return $this->_connection;
+	}
+
+	public function getCondition()
+	{
+		return $this->_condition;
+	}
+
+	// implements of Countable interface
+
+    public function count()
+    {
+		$this->_dataExists() ?: $this->_generateData();       
+        
+        return sizeof($this->_stored_data);
+    }
 
     public function __call($function_name, $argument)
     {
         if(strpos($function_name, 'having_') !== FALSE)
         {
+			if( is_null($this->_group_by) )
+			{
+				throw new ActiveRecord_Collection_HavingWithoutGroupByException("No groupBy statement were given");
+			}
+
             $col_condition = str_replace( 'having_', '', $function_name);
 
 			/* eg: having_agent_viewed_at() get agent_viewed_at <--- column name*/
@@ -45,7 +275,11 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
 
 			if($argument[0] instanceof ActiveRecord_ConditionOperator)
 			{
-				$this->having_sql = ' HAVING ' . $argument[0]->setColumn($col_condition)->getSQL() . ' ';
+				$this->_having = $argument[0]->setColumn($col_condition)->getSQL();
+			}
+			else
+			{
+				$this->_having = "`$col_condition` = " . $this->_getConnection()->quote($argument[0]);
 			}
 
 			return $this;
@@ -57,265 +291,108 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
 			
 			if($argument[0] instanceof ActiveRecord_ConditionOperator)
 			{
-				$this->condition .= ' AND ' . $argument[0]->setColumn($col_condition)->getSQL();
+				$this->_condition .= ' AND ' . $argument[0]->setColumn($col_condition)->getSQL();
 			}
 			else
 			{
-				$this->condition .= ' AND `' .$col_condition. '` = '. "'".$argument[0]."'";
+				$this->_condition .= ' AND `' .$col_condition. '` = '. "'".$argument[0]."'";
 			}
 
 			return $this;
 		}
     }
 
-	protected function generateSelection()
-	{
-		$columns = array();
-		
-		foreach($this->selection as $column=>$alias)
-		{
-			if($column == $alias)
-			{
-				$columns[] = "$column";
-			}
-			else
-			{
-				$columns[] = "$column as `$alias`";
-			}
-		}
-
-		return implode(",", $columns);
-	}
-
- 	public function removeAllSelect()
-	{
-		$this->selection = array($this->generatePrimaryKey());
-
-		return $this;
-	}
-
 	public function removeSelect($select)
 	{
-		unset($this->selection[$select]);
+		$this->_selected_fields = array_diff($this->_selected_fields, array($select));
 
 		return $this;
 	}
 
-	public function addSelect($select, $alias = '')
+	public function addSelect($select)
 	{
 		if($select instanceof AR_modifier)
 		{
-			if($alias == '')
-			{
-				$alias = $select->returnData();
-			}
-
-			$this->selection[$select->returnData()] = $alias;
+			$this->_selected_fields = $select->returnData();
 		}
 		else
 		{
-			if($alias == '')
-			{
-				$alias = $select;
-			}
-
 			if(!in_array($select, $this->columns))
 			{
 				throw new Exception('no column');
 			}
 
-			$this->selection["`$select`"] = $alias;
+			$this->_selected_fields[] = $select;
 		}
 		
 		return $this;
 	}
 
-
-
     public function getLastSQL()
     {
-        return $this->sql;
-    }
-
-    protected function IsDataRequireGenerate()
-    {
-        if($this->required_regenerate === true)
-        {
-            return true;
-        }
-
-        if($this->required_regenerate === false && is_null($this->generateData))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    public function generateOrderBySQL()
-    {
-        if(sizeof($this->orderby) > 0)
-        {
-            $sql = array();
-            
-            foreach($this->orderby as $col => $setting)
-            {
-				if(strpos($col, '`') !== FALSE || isset($setting['no_quoting']))
-				{
-					$sql[] = "$col {$setting['direction']}";
-				}
-				else
-				{
-                	$sql[] = "`$col` {$setting['direction']}";
-				}
-            }
-
-            return ' ORDER BY ' . implode(',',$sql);
-        }
-        else
-        {
-            return '';
-        }
-    }
-
-    public function generateLimitSQL()
-    {
-        if($this->limit > 0)
-        {
-            return " LIMIT {$this->offset}, {$this->limit}";
-        }
-
-        return '';
-    }
-
-    public function count()
-    {
-        if($this->IsDataRequireGenerate())
-        {
-            $this->generateData();       
-        }
-        
-        return sizeof($this->generateData);
-
+        return $this->_last_sql;
     }
 
     public function current()
     {
-        if($this->IsDataRequireGenerate())
-        {
-            $this->generateData();       
-        }
+		$this->_dataExists() ?: $this->_generateData();
         
-        return $this->generateData[$this->position];
+        return $this->_generateEntryObject($this->_stored_data[$this->_position]);
     }
 
     public function key()
     {
-        return $this->position;
+        return $this->_position;
     }
 
     public function next()
     {
-        ++$this->position;
+        ++$this->_position;
     }
 
     public function rewind()
     {
-        $this->position = 0;
+        $this->_position = 0;
     }
 
     public function valid()
     {
-        if($this->IsDataRequireGenerate())
-        {
-            $this->generateData();       
-        }
+		$this->_dataExists() ?: $this->_generateData();
 
-        return isset($this->generateData[$this->position]);
+        return isset($this->_stored_data[$this->_position]);
     }
 
-    public function generateEntryObject($data = null)
+    protected function _generateEntryObject($data = null)
     {
         if($data === FALSE)
         {
             throw new ActiveRecord_RecordNotExistException("ActiveRecord: requested condition had found no data.");
         }
-
+		
 		$dataObject = new bPack_DB_ActiveRecord_DataObject;
 
 		$dataObject
-			->setConnection($this->connection)
-			->setModel($this->model_class)
-			->setSchemaName($this->table_name)
-			->setSchema($this->table_column)
+			->setConnection( $this->_getConnection() )
+			->setModel($this->_model)
+			->setSchemaName($this->_schema_name)
+			->setSchema($this->_schema)
 			->setData($data);
 
 		return new bPack_DB_ActiveRecord_Entry($dataObject);
     }
 
-	protected function generateGroupBySQL()
-	{
-		if($this->group_by)
-		{
-			return " GROUP BY `{$this->group_by}`";
-		}
-
-		return '';
-	}
-
-    protected function generateData()
-    {
-        $this->sql = "SELECT " . $this->generateSelection() . "FROM `{$this->table_name}` ". $this->condition . $this->generateGroupBySQL() . $this->having_sql . $this->generateOrderBySQL() . $this->generateLimitSQL() . ';';
-
-        $dataset = $this->connection->query($this->sql )->fetchAll(PDO::FETCH_ASSOC);
-
-        $result_set = array();
-
-        foreach($dataset as $data)
-        {
-            $result_set[] = $this->generateEntryObject($data);
-        }
-
-        $this->generateData = $result_set;
-
-        $this->required_regenerate = false;
-    }
-
     public function offsetExists($offset)
     {
-        if($this->IsDataRequireGenerate())
-        {
-            echo '';
-            $this->generateData();       
-        }
+		$this->_dataExists() ?: $this->_generateData();
 
-        return isset($this->generateData[$offset]);
+        return isset($this->_stored_data[$offset]);
     }
 
     public function offsetGet($offset)
     {
-        if($this->IsDataRequireGenerate())
-        {
-            $this->generateData();
-        }
+		$this->_dataExists() ?: $this->_generateData();
 
-        return $this->generateData[$offset];
-    }
-
-    public function exposeData()
-    {
-        if($this->IsDataRequireGenerate())
-        {
-            $this->generateData();
-        }
-
-        $data = array();
-        foreach($this->generateData as $v)
-        {
-            $data[] = $v->exposeData();
-        }
-
-        return $data;
+        return $this->_generateEntryObject($this->_stored_data[$offset]);
     }
 
     public function offsetSet($offset, $value)
@@ -327,62 +404,6 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
     {
         return false;
     }
-
-    public function __construct(PDO $connection, bPack_DB_ActiveRecord $parent_class, $table_name, $columns, $selection, $condition)
-    {
-        $this->connection = $connection;
-        $this->model_class = $parent_class;
-        $this->table_name = $table_name;
-        $this->condition = $condition;
-        $this->selection = $selection;
-        $this->columns = array_keys($columns);
-        $this->table_column = $columns;
-    }
-
-    public function limit($limit_count)
-    {
-        $this->limit = $limit_count;
-        $this->required_regenerate = true;
-
-        return $this;
-    }
-
-    public function offset($offset)
-    {
-        $this->offset = $offset;
-        $this->required_regenerate = true;
-
-        return $this;
-    }
-
-    public function orderBy($column, $direction = 'ASC')
-    {
-		$setting = array();
-
-		if($column instanceof AR_modifier)
-		{
-			$column = $column->returnData();
-			$setting['no_quoting'] = true;
-		}
-
-		$setting['direction'] = $direction;
-
-        $this->orderby[$column] = $setting;
-        $this->required_regenerate = true;
-
-        return $this;
-    }
-
-	public function group_by($column)
-	{
-		if($this->group_by == '')
-		{
-			$this->group_by = $column;
-			return $this;
-		}
-
-		throw new Exception('two groupby');
-	}
 }
 
 interface AR_modifier
@@ -409,3 +430,7 @@ class AR_Plain  implements AR_modifier
 	}
 	
 }
+
+class ActiveRecord_CollectionException extends ActiveRecord_Exception {}
+class ActiveRecord_Collection_HavingWithoutGroupByException extends ActiveRecord_CollectionException {}
+

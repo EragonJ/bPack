@@ -2,85 +2,114 @@
 
 abstract class bPack_DB_ActiveRecord
 {
+	/* cache */
+	protected $_cache = array();
+
+	/* columns cahce */
+	protected $_type_columns = array();
+	protected $_tag_columns = array();
+	protected $_columns = array();
+
+	/* database connection */
+	protected $_connection = null;
+
+	/* this should be overwrite by developer */
+	protected $table_column = null;
+	protected $table_name = null;
+
+	/* for objects */
     const FetchAll = 1;
     const FetchOne = 2;
 
-    protected $collection_instances = array();
+	/* 
+		interface 
+	*/
 
-    protected $columns = array();
-    protected $table_column = array();
-
-    public function getSchema()
+    public function __construct()
     {
-        $database_backend  = $this->connection->getAttribute(PDO::ATTR_DRIVER_NAME);
-
-        if($database_backend == 'sqlite')
-        {
-            $schema_sql = '';
-
-            $schema_sql .= "CREATE TABLE `{$this->table_name}` ";
-
-            $field_schema = array();
-            foreach($this->table_column as $col => $col_info)
-            {
-                if(isset($col_info['tag']) && (strpos( $col_info['tag'],'primary_key') !== FALSE))
-                {
-                    $col_type = 'INTEGER PRIMARY KEY';
-                }
-                else
-                {
-                    $col_type = '';
-                }
-
-                $field_schema[] = " $col $col_type";
-            }
-
-            $schema_sql .= "(".implode(',', $field_schema).");";
-        }
-        else
-        {
-            #mysql
-
-            $schema_sql = "CREATE TABLE  IF NOT EXISTS `{$this->table_name}` ";
-            $index_sql = '';
-
-            $field_schema = array();
-            foreach($this->table_column as $col => $col_info)
-            {
-                if(isset($col_info['tag']) && (strpos( $col_info['tag'],'primary_key') !== FALSE))
-                {
-                    $col_type = 'int(20) unsigned not null AUTO_INCREMENT';
-                    $index_sql .= ',PRIMARY KEY (`'.$col.'`)';
-                }
-                else
-                {
-                    if(strpos(strtolower($col_info['type']),'int') === FALSE)
-                    {
-                        $col_type = $col_info['type'];
-                    }
-                    else
-                    {
-                        $col_type = $col_info['type'] . ' unsigned';
-                    }
-                }
-
-                $field_schema[] = " `$col` $col_type NOT NULL";
-            }
-
-            $schema_sql .= "(".implode(',', $field_schema).' ' .$index_sql.")  ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;";
-        }
-        
-        return $schema_sql;
-    } 
-
-    public function destroySchema()
-    {
-        return $this->connection->exec('DROP TABLE `'.$this->table_name.'`;');
+		$this->_prepareColumnCache();
     }
 
-    public function createSchema()
+    public function create_new_entry()
     {
-        return $this->connection->exec($this->getSchema());
+        return $this->_generateEntry();
+    }
+
+    public function retrieve_all_entries()
+    {
+        return $this->_generateCollectionBy( $this->_getPrimaryKey(), null );
+    }
+
+    public function first()
+    {
+        $sql = "SELECT {$this->_getColumnListing()} FROM `{$this->table_name}` LIMIT 1;";
+
+		return $this->_getQueryResult($sql);
+    }
+
+    public function last()
+    {
+        $sql = "SELECT {$this->_getColumnListing()} FROM `{$this->table_name}` ORDER BY `".$this->_getPrimaryKey()."` DESC LIMIT 1;";
+
+		return $this->_getQueryResult($sql);
+    }
+
+	public function getSchemaName()
+	{
+		return $this->table_name;
+	}
+
+	public function getSchema()
+	{
+		return $this->table_column;
+	}
+
+	public function setDatabase($obj)
+	{
+		$this->_connection = $obj;
+
+		return true;
+	}
+
+    public function __call($function_name, $attributes)
+    {
+        if(strpos($function_name, 'find_by_') !== FALSE)
+        {
+            $column_name = str_replace('find_by_', '', $function_name);
+			
+			/* when call id, we think it called primary key */
+			if($column_name == 'id')
+			{
+				$column_name = $this->_getPrimaryKey();
+			}
+
+            return $this->_generateEntryBy($column_name, $attributes);
+        }
+        
+        if(strpos($function_name,'find_all_by_') !== FALSE)
+        {
+            $column_name = str_replace('find_all_by_', '', $function_name);
+
+			/* when call id, we think it called primary key */
+			if($column_name == 'id')
+			{
+				$column_name = $this->_getPrimaryKey();
+			}
+
+            if(strpos($column_name,'_with_'))
+            {
+                $column = substr($column_name, 0, strpos($column_name, '_'));
+                $column_condtion = substr($column_name, strpos($column_name, '_with_') + 6, strlen($column_name) - strlen($column));
+                
+                $entry_data = $this->_generateEntryBy($column_condtion, $attributes);
+
+                return $this->_generateCollectionBy($column, $entry_data->id);
+            }
+
+            return $this->_generateCollectionBy($column_name, $attributes);
+        }
+
+        throw new bPack_Exception("ActiveRecord: No corresponding method exists. (requested: $function_name)");
     }
 
 	public function __get($name)
@@ -89,139 +118,209 @@ abstract class bPack_DB_ActiveRecord
 		{
 			$column_name = substr($name, 1, strlen($name) - 1);
 
-			if(in_array($column_name, $this->columns))
+			if(in_array($column_name, $this->_columns))
 			{
 				return $column_name;
 			}
-			else
+
+			if($column_name == 'id')
 			{
-				throw new ActiveRecord_ColumnNotExistException('not found column ' . $column_name);
+				return $this->_getPrimaryKey();
 			}
+
+			throw new ActiveRecord_ColumnNotExistException('not found column ' . $column_name);
 		}
 
 		throw new ActiveRecord_Exception('not found ' . $name);
 	}
 
-    public function __construct()
+	/*
+		helper
+	*/
+
+	protected function _getPrimaryKey()
+	{
+		$primary = $this->_getTagColumns('primary_key');
+
+		return $primary[0];
+	}
+
+	protected function _getConnection()
+	{
+		if(is_null($this->_connection))
+		{
+			$this->_connection = bPack_DB::getInstance();
+		}
+
+		return $this->_connection;
+	}
+
+	protected function _prepareColumnCache()
+	{
+		if(is_null($this->table_column))
+		{
+			throw new ActiveRecord_Exception('Table column not overwrite, empty schema.');
+		}
+		
+		// column list
+		$this->_columns = array_keys($this->table_column);
+
+		// tag or type list
+		foreach($this->table_column as $column => $value)
+		{
+			if( isset($value['tag']) )
+			{
+				$this->_proceedTag($column, $value['tag']);
+			}
+
+			if( isset($value['type']) )
+			{
+				$this->_proceedType($column, $value['type']);
+			}
+		}
+			
+		return true;
+	}
+
+	protected function _proceedTag($column, $tag_string)
+	{
+		$tags = explode(' ', $tag_string);
+
+		foreach($tags as $tag)
+		{
+			$this->_tag_columns[$tag][] = $column;
+		}
+
+		return true;
+	}
+
+	protected function _proceedType($column, $type)
+	{
+		$this->_type_columns[$type][] = $column;
+
+		return true;
+	}
+
+	protected function _getTagColumns($tag_name)
+	{
+		if( !isset($this->_tag_columns[$tag_name]) )
+		{
+			return array();
+		}
+
+		return $this->_tag_columns[$tag_name];
+	}
+
+	protected function _getTypeColumns($type_name)
+	{
+		if( !isset($this->_type_columns[$type_name]) )
+		{
+			return array();
+		}
+
+		return $this->_type_columns[$type_name];
+	}
+
+	protected function _getColumnListing()
+	{
+		$columns = $this->table_column;
+
+		foreach($this->_getTypeColumns('virtual') as $column)
+		{
+			unset($columns[$column]);
+		}
+
+		return '`' . implode('`, `', array_keys($columns)) . '`';
+	}
+
+	protected function _getQueryResult($sql = '')
+	{
+		if ( $sql == '')
+		{
+			throw new ActiveRecord_Exception("using First/Last function without sql");
+		}
+
+		$hash = sha1($sql);
+
+		if(isset($this->_cache[$hash]))
+		{
+			return $this->_generateEntry($this->_cache[$hash]);
+		}
+
+        $rs = $this->_getConnection()->query($sql);
+		
+		if($rs !== FALSE)
+		{
+			$data = $rs->fetch(PDO::FETCH_ASSOC);
+
+			$this->_cache[$hash] = $data;
+
+			return $this->_generateEntry($data);
+		}
+
+		throw new ActiveRecord_Exception("Database connection failed.");
+	}
+
+    protected function _generateCollectionBy($column, $value)
     {
-        $this->connection = bPack_DB::getInstance();
-        $this->columns = array_keys($this->table_column);    
+        if(!in_array($column, $this->_columns))
+        {
+            throw new ActiveRecord_ColumnNotExistException("Requested column [ $column ] was't in the defination.");
+        }
+
+        $value_sql = $this->_generateValueExpr($column, $value);
+
+		$dataObject = new bPack_DB_ActiveRecord_DataObject(self::FetchAll);
+
+		$dataObject
+			->setConnection( $this->_getConnection() )
+			->setModel($this)
+			->setSchemaName($this->table_name)
+			->setSchema($this->table_column)
+			->setCondition($value_sql);
+
+		return new bPack_DB_ActiveRecord_Collection($dataObject);
+	}
+
+    protected function _generateEntryBy($column, $value)
+    {
+        if(!in_array($column, $this->_columns))
+        {
+            throw new ActiveRecord_ColumnNotExistException("Requested column [ $column ] was't in the defination.");
+        }
+
+        $value_sql = $this->_generateValueExpr($column, $value);
+
+		if($value_sql != '')
+		{
+			$value_sql = "WHERE $value_sql";
+		}
+
+        $sql = "SELECT ".$this->_getColumnListing()." FROM `{$this->table_name}` {$value_sql};";
+
+		return $this->_getQueryResult($sql);
     }
 
-    public function first()
-    {
-        $sql = "SELECT * FROM `{$this->table_name}` LIMIT 1;";
-        $data = $this->connection->query($sql)->fetch(PDO::FETCH_ASSOC);
-
-        return $this->generateEntryObject($data);
-    }
-
-    public function last()
-    {
-        $sql = "SELECT * FROM `{$this->table_name}` ORDER BY `".$this->extractPrimaryKey()."` DESC LIMIT 1;";
-        $data = $this->connection->query($sql)->fetch(PDO::FETCH_ASSOC);
-
-        return $this->generateEntryObject($data);
-    }
-
-    public function generateEntryObject($data = null)
-    {
-        if($data === FALSE)
+	protected function _generateEntry($data = null)
+	{
+		if($data === FALSE)
         {
             throw new ActiveRecord_RecordNotExistException("ActiveRecord: requested condition had found no data.");
         }
 
-		$dataObject = new bPack_DB_ActiveRecord_DataObject;
+		$dataObject = new bPack_DB_ActiveRecord_DataObject(self::FetchOne);
 
 		$dataObject
-			->setConnection($this->connection)
+			->setConnection($this->_getConnection())
 			->setModel($this)
 			->setSchemaName($this->table_name)
 			->setSchema($this->table_column)
 			->setData($data);
 
 		return new bPack_DB_ActiveRecord_Entry($dataObject);
-    }
-
-	public function getColumns()
-	{
-		return $this->table_column;
 	}
 
-    public function create_new_entry()
-    {
-        return $this->generateEntryObject();
-    }
-
-    public function retrieve_all_entries($option = null)
-    {
-        return $this->find_all_by_id();
-    }
-
-	protected function generateColumnListing()
-	{
-		$columns = array();
-		
-		foreach($this->columns as $column)
-		{
-			$columns[] = "`$column`";
-		}
-
-		return implode(",", $columns);
-	}
-
-    protected function retrieve_multiple_entries_by($column, $value)
-    {
-        if(!in_array($column, $this->columns))
-        {
-            throw new ActiveRecord_ColumnNotExistException("Requested column [ $column ] was't in the defination.");
-        }
-
-        $value_sql = $this->generateValue($column, $value);
-
-		if($value_sql != "")
-		{
-			$value_sql = " WHERE $value_sql";
-		}
-
-		return new bPack_DB_ActiveRecord_Collection($this->connection, $this, $this->table_name, $this->table_column, $this->generateSelection(), $value_sql);
-    }
-
-	protected function generateSelection()
-	{
-		$raw_columns = $this->columns;
-		$columns = array();
-
-		foreach($raw_columns as $col)
-		{
-			$columns["`$col`"] = $col;
-		}
-
-		return $columns;
-	}
-
-    protected function retrieve_entry_by($column, $value)
-    {
-        if(!in_array($column, $this->columns))
-        {
-            throw new ActiveRecord_ColumnNotExistException("Requested column [ $column ] was't in the defination.");
-        }
-
-        $value_sql = $this->generateValue($column, $value);
-
-		if($value_sql != '')
-		{
-			$value_sql = " WHERE $value_sql";
-		}
-
-        $sql = "SELECT ".$this->generateColumnListing()." FROM `{$this->table_name}` {$value_sql};";
-
-        $data = $this->connection->query($sql)->fetch(PDO::FETCH_ASSOC); 
-
-        return $this->generateEntryObject($data);
-    }
-
-    protected function generateValue($column, $value)
+	protected function _generateValueExpr($column, $value)
     {
         if(sizeof($value) == 0)
         {
@@ -250,60 +349,8 @@ abstract class bPack_DB_ActiveRecord
         }
 
         $object->setColumn($column);
-	return $object->getSQL(); }
-	public function extractPrimaryKey()
-	{
-		foreach($this->table_column as $col_name => $data)
-		{
-			if(strpos('primary_key', $data['tag']) !== FALSE)
-			{
-				return $col_name;
-			}
-		}
-
-		throw new Exception("No primaykey found.");
+		return $object->getSQL(); 
 	}
-
-    public function __call($function_name, $attributes)
-    {
-        if(strpos($function_name, 'find_by_') !== FALSE)
-        {
-            $column_name = str_replace('find_by_', '', $function_name);
-			
-			/* when call id, we think it called primary key */
-			if($column_name == 'id')
-			{
-				$column_name = $this->extractPrimaryKey();
-			}
-
-            return $this->retrieve_entry_by($column_name, $attributes);
-        }
-        
-        if(strpos($function_name,'find_all_by_') !== FALSE)
-        {
-            $column_name = str_replace('find_all_by_', '', $function_name);
-
-			/* when call id, we think it called primary key */
-			if($column_name == 'id')
-			{
-				$column_name = $this->extractPrimaryKey();
-			}
-
-            if(strpos($column_name,'_with_'))
-            {
-                $column = substr($column_name, 0, strpos($column_name, '_'));
-                $column_condtion = substr($column_name, strpos($column_name, '_with_') + 6, strlen($column_name) - strlen($column));
-                
-                $entry_data = $this->retrieve_entry_by($column_condtion, $attributes);
-
-                return $this->retrieve_multiple_entries_by($column, $entry_data->id);
-            }
-
-            return $this->retrieve_multiple_entries_by($column_name, $attributes);
-        }
-
-        throw new bPack_Exception("ActiveRecord: No corresponding method exists. (requested: $function_name)");
-    }
 }
 
 interface ActiveRecord_ConditionOperator
@@ -350,7 +397,7 @@ class ActiveRecord_Condition_Plain implements ActiveRecord_ConditionOperator
 
     public function getSQL()
     {
-        return "`{$this->col}`='{$this->statement}'";
+        return "`{$this->col}` = '{$this->statement}'";
     }
 
     public function setColumn($name)

@@ -12,10 +12,21 @@ class bPack_DB_ActiveRecord_DataObject
 	protected $_schema_name = null;
 	protected $_schema = null;
 
+	/* for: type */
+	protected $_type = null;
+
+	/* for: collection */
+	protected $_condition = null;
+
 	/* for: developer access */
 	protected $_row_data = null;
 
-	public function setConnection(PDO $connection)
+	public function __construct($type = bPack_DB_ActiveRecord::FetchOne)
+	{
+		$this->_type = $type;
+	}
+
+	public function setConnection($connection)
 	{
 		$this->_connection = $connection;
 		return $this;
@@ -41,8 +52,28 @@ class bPack_DB_ActiveRecord_DataObject
 
 	public function setData($data)
 	{
+		if($this->_type == bPack_DB_ActiveRecord::FetchAll)
+		{
+			throw new ActiveRecord_Exception('DataObject for Collections cannot filled with data');
+		}
+
 		$this->_row_data = $data;
 		return $this;
+	}
+
+	public function setCondition($value)
+	{
+		if($this->_type == bPack_DB_ActiveRecord::FetchOne)
+		{
+			throw new ActiveRecord_Exception('DataObject for Entry cannot filled with condition, give data array instead');
+		}
+
+		$this->_condition = $value;
+	}
+
+	public function getCondition()
+	{
+		return $this->_condition;
 	}
 
 	public function getData()
@@ -65,8 +96,18 @@ class bPack_DB_ActiveRecord_DataObject
 		return $this->_model_class;
 	}
 
+	public function getConnection()
+	{
+		return $this->_connection;
+	}
+
 	public function hasData()
 	{
 		return !is_null($this->_row_data);
+	}
+
+	public function hasCondition()
+	{
+		return !is_null($this->_condition);
 	}
 }

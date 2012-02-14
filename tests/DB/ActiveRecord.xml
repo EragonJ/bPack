@@ -1,0 +1,7 @@
+<testsuites>
+  <testsuite name="ActiveRecord_TestSuite">
+    <file>ActiveRecord.php</file>
+    <file>ActiveRecord_Collection.php</file>
+    <file>ActiveRecord_Entry.php</file>
+  </testsuite>
+</testsuites>

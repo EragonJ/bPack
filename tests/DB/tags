@@ -1,0 +1,46 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+ActiveRecord_Test	ActiveRecord.php	/^class ActiveRecord_Test extends PHPUnit_Framework_TestCase$/;"	c
+DummyDatabase	ActiveRecord.php	/^class DummyDatabase $/;"	c
+DummyDatabase_Statement	ActiveRecord.php	/^class DummyDatabase_Statement$/;"	c
+TestModel	ActiveRecord.php	/^class TestModel extends bPack_DB_ActiveRecord$/;"	c
+__call	ActiveRecord.php	/^	public function __call($name, $value)$/;"	f
+__construct	ActiveRecord.php	/^	public function __construct($connObject)$/;"	f
+__get	ActiveRecord.php	/^	public function __get($name)$/;"	f
+__set	ActiveRecord.php	/^	public function __set($name, $value)$/;"	f
+_dummyDB	ActiveRecord.php	/^		$this->_dummyDB = new DummyDatabase;$/;"	v
+_dummyDB	ActiveRecord.php	/^		$this->_dummyDB = null;$/;"	v
+_last_sql	ActiveRecord.php	/^		$this->_last_sql = $sql;$/;"	v
+_last_sql	ActiveRecord.php	/^	protected $_last_sql = '';$/;"	v
+_model	ActiveRecord.php	/^		$this->_model = new TestModel;$/;"	v
+_model	ActiveRecord.php	/^		$this->_model = null;$/;"	v
+_model	ActiveRecord.php	/^	protected $_model = null; $/;"	v
+attr	ActiveRecord.php	/^			$attr = substr($name, 4, strlen($name) - 3);$/;"	v
+bPack_DB_ActiveRecord_Collection	ActiveRecord.php	/^class bPack_DB_ActiveRecord_Collection$/;"	c
+bPack_DB_ActiveRecord_DataObject	ActiveRecord.php	/^class bPack_DB_ActiveRecord_DataObject$/;"	c
+bPack_DB_ActiveRecord_Entry	ActiveRecord.php	/^class bPack_DB_ActiveRecord_Entry$/;"	c
+dataset	ActiveRecord.php	/^		$dataset = $this->_model->find_all_by_foo('Dance');$/;"	v
+dataset	ActiveRecord.php	/^		$dataset = $this->_model->find_all_by_text('Dance');$/;"	v
+entry	ActiveRecord.php	/^		$entry = $this->_model->find_by_id(1);$/;"	v
+entry	ActiveRecord.php	/^		$entry = $this->_model->first();$/;"	v
+entry	ActiveRecord.php	/^		$entry = $this->_model->last();$/;"	v
+exec	ActiveRecord.php	/^	public function exec($sql)$/;"	f
+fetch	ActiveRecord.php	/^	public function fetch()$/;"	f
+getEngine	ActiveRecord.php	/^	public function getEngine()$/;"	f
+getLastSQL	ActiveRecord.php	/^	public function getLastSQL()$/;"	f
+query	ActiveRecord.php	/^	public function query($sql)$/;"	f
+setUp	ActiveRecord.php	/^	public function setUp()$/;"	f
+table_column	ActiveRecord.php	/^	protected $table_column = array($/;"	v
+table_name	ActiveRecord.php	/^	protected $table_name = 'table';$/;"	v
+tearDown	ActiveRecord.php	/^	public function tearDown()$/;"	f
+testCreateNewEntry	ActiveRecord.php	/^	public function testCreateNewEntry()$/;"	f
+testFindAllBy	ActiveRecord.php	/^	public function testFindAllBy()$/;"	f
+testFindAllByNonExistColumn	ActiveRecord.php	/^	public function testFindAllByNonExistColumn()$/;"	f
+testFindBy	ActiveRecord.php	/^	public function testFindBy()$/;"	f
+testFirst	ActiveRecord.php	/^	public function testFirst()$/;"	f
+testLast	ActiveRecord.php	/^	public function testLast()$/;"	f
+testRetreieveAllEntries	ActiveRecord.php	/^	public function testRetreieveAllEntries()$/;"	f

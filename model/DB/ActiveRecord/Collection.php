@@ -235,7 +235,7 @@ class bPack_DB_ActiveRecord_Collection implements ArrayAccess, Countable, Iterat
 
 	public function destroy()
 	{
-		$sql = "DELETE FROM `{$this->_schema_name}` {$this->_condition};";
+		$sql = "DELETE FROM `{$this->_schema_name}` WHERE {$this->_condition};";
 
 		return ($this->_getConnection()->query($sql) === FALSE);
 	}
